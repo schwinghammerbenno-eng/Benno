@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NewsPulse — American Politics News Radar (Standalone)</title>
+<style>
+/* ───── CSS Reset & Variables ───── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0e17;
+  --bg2: #111827;
+  --bg3: #1a2235;
+  --surface: #1e293b;
+  --surface2: #253346;
+  --border: #334155;
+  --text: #e2e8f0;
+  --text-dim: #94a3b8;
+  --text-muted: #64748b;
+  --accent: #3b82f6;
+  --accent2: #6366f1;
+  --accent-glow: rgba(59, 130, 246, 0.3);
+  --green: #10b981;
+  --yellow: #f59e0b;
+  --red: #ef4444;
+  --orange: #f97316;
+  --purple: #a855f7;
+  --pink: #ec4899;
+  --cyan: #06b6d4;
+  --radius: 10px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* ───── Header ───── */
+.header {
+  background: linear-gradient(135deg, var(--bg2), var(--bg3));
+  border-bottom: 1px solid var(--border);
+  padding: 1.5rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.logo { display: flex; align-items: center; gap: 0.75rem; }
+
+.logo-icon {
+  width: 40px; height: 40px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; font-weight: 800; color: white; letter-spacing: -1px;
+}
+
+.logo h1 {
+  font-size: 1.5rem; font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+
+.logo .subtitle {
+  font-size: 0.75rem; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 1.5px;
+}
+
+.controls { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+
+.time-selector {
+  display: flex; background: var(--surface);
+  border-radius: var(--radius); overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.time-btn {
+  padding: 0.5rem 1rem; background: transparent; border: none;
+  color: var(--text-dim); cursor: pointer; font-size: 0.85rem;
+  font-weight: 500; transition: all 0.2s;
+}
+.time-btn.active { background: var(--accent); color: white; }
+.time-btn:hover:not(.active) { background: var(--surface2); color: var(--text); }
+
+.scan-btn {
+  padding: 0.75rem 2rem;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none; border-radius: var(--radius); color: white;
+  font-size: 1rem; font-weight: 700; cursor: pointer;
+  letter-spacing: 0.5px; transition: all 0.3s;
+  box-shadow: 0 4px 15px var(--accent-glow);
+  position: relative; overflow: hidden;
+}
+.scan-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 25px var(--accent-glow); }
+.scan-btn:active { transform: translateY(0); }
+.scan-btn.loading { pointer-events: none; opacity: 0.85; }
+.scan-btn.loading::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+/* ───── Main Layout ───── */
+.main { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+
+/* ───── Status Bar ───── */
+.status-bar {
+  display: flex; align-items: center; gap: 1.5rem;
+  padding: 1rem 1.5rem; background: var(--surface);
+  border-radius: var(--radius); border: 1px solid var(--border);
+  margin-bottom: 2rem; flex-wrap: wrap;
+}
+.status-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--green); animation: pulse-dot 2s infinite;
+}
+@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+.status-label { color: var(--text-muted); }
+.status-value { color: var(--text); font-weight: 600; }
+
+/* ───── Section Headers ───── */
+.section-header {
+  display: flex; align-items: center; gap: 0.75rem;
+  margin-bottom: 1.5rem; padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--border);
+}
+.section-header h2 { font-size: 1.25rem; font-weight: 700; }
+.section-badge {
+  padding: 0.25rem 0.75rem; background: var(--accent);
+  border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: white;
+}
+
+/* ───── Topic Cards ───── */
+.topics-grid { display: flex; flex-direction: column; gap: 1.5rem; margin-bottom: 3rem; }
+
+.topic-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden; transition: all 0.3s;
+}
+.topic-card:hover { border-color: var(--accent); box-shadow: 0 0 30px rgba(59,130,246,0.1); }
+
+.topic-header {
+  display: flex; align-items: flex-start; gap: 1rem;
+  padding: 1.25rem 1.5rem; cursor: pointer;
+}
+
+.topic-rank {
+  flex-shrink: 0; width: 42px; height: 42px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 10px; font-size: 1.1rem; font-weight: 800; color: white;
+}
+.rank-1 { background: linear-gradient(135deg, #f59e0b, #ef4444); }
+.rank-2 { background: linear-gradient(135deg, #8b5cf6, #6366f1); }
+.rank-3 { background: linear-gradient(135deg, #06b6d4, #3b82f6); }
+.rank-other { background: var(--surface2); color: var(--text-dim); }
+
+.topic-info { flex: 1; min-width: 0; }
+.topic-title { font-size: 1.05rem; font-weight: 600; line-height: 1.4; margin-bottom: 0.5rem; }
+.topic-meta { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.meta-chip {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.2rem 0.6rem; background: var(--bg2);
+  border-radius: 6px; font-size: 0.75rem; color: var(--text-dim);
+}
+.meta-chip .num { color: var(--accent); font-weight: 700; }
+
+.topic-expand-icon {
+  flex-shrink: 0; color: var(--text-muted);
+  transition: transform 0.3s; font-size: 1.2rem;
+}
+.topic-card.expanded .topic-expand-icon { transform: rotate(180deg); }
+
+/* Source alignment bar */
+.alignment-bar-container { padding: 0 1.5rem 1rem; }
+.alignment-bar {
+  height: 6px; border-radius: 3px; background: var(--bg2);
+  overflow: hidden; position: relative;
+}
+.alignment-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+.alignment-high { background: linear-gradient(90deg, var(--green), #34d399); }
+.alignment-mid { background: linear-gradient(90deg, var(--yellow), var(--orange)); }
+.alignment-low { background: linear-gradient(90deg, var(--orange), var(--red)); }
+.alignment-label {
+  font-size: 0.7rem; color: var(--text-muted); margin-top: 0.3rem;
+  display: flex; justify-content: space-between;
+}
+
+/* Topic Detail Panel */
+.topic-detail { display: none; padding: 0 1.5rem 1.5rem; border-top: 1px solid var(--border); }
+.topic-card.expanded .topic-detail { display: block; }
+.detail-section { margin-bottom: 1.25rem; }
+.detail-section h4 {
+  font-size: 0.8rem; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--accent); margin-bottom: 0.5rem;
+}
+.detail-text { font-size: 0.9rem; color: var(--text-dim); line-height: 1.7; }
+
+/* Source Chips */
+.source-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.source-chip {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.3rem 0.7rem; border-radius: 6px; font-size: 0.75rem;
+  font-weight: 500; border: 1px solid var(--border); background: var(--bg2);
+}
+.lean-dot { width: 6px; height: 6px; border-radius: 50%; }
+.lean-left { background: #3b82f6; }
+.lean-center-left { background: #60a5fa; }
+.lean-center { background: #a3a3a3; }
+.lean-center-right { background: #fb923c; }
+.lean-right { background: #ef4444; }
+.lean-libertarian { background: #f59e0b; }
+.lean-official { background: #10b981; }
+.lean-mixed { background: #8b5cf6; }
+
+/* Perspective Cards */
+.perspective-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 0.5rem;
+}
+.perspective-lean {
+  font-size: 0.7rem; text-transform: uppercase;
+  letter-spacing: 0.5px; font-weight: 600; margin-bottom: 0.25rem;
+}
+.perspective-sources { font-size: 0.75rem; color: var(--text-muted); }
+.perspective-emphasis { font-size: 0.8rem; color: var(--text-dim); font-style: italic; }
+.perspective-headline {
+  font-size: 0.85rem; color: var(--text); margin-top: 0.35rem;
+  padding-left: 0.75rem; border-left: 3px solid var(--accent);
+}
+
+/* Article List */
+.article-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.article-item {
+  display: flex; align-items: flex-start; gap: 0.75rem;
+  padding: 0.5rem 0.75rem; background: var(--bg2);
+  border-radius: 6px; transition: background 0.2s;
+}
+.article-item:hover { background: var(--bg3); }
+.article-source-tag {
+  flex-shrink: 0; font-size: 0.65rem; padding: 0.15rem 0.5rem;
+  border-radius: 4px; background: var(--surface2); color: var(--text-muted);
+  white-space: nowrap;
+}
+.article-link {
+  color: var(--text); text-decoration: none; font-size: 0.85rem;
+  line-height: 1.4; transition: color 0.2s;
+}
+.article-link:hover { color: var(--accent); }
+.article-time { flex-shrink: 0; font-size: 0.7rem; color: var(--text-muted); white-space: nowrap; }
+
+/* ───── Key Phrases Viz ───── */
+.keyphrase-bubbles { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.keyphrase-bubble {
+  padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 500;
+  background: rgba(59,130,246,0.15); color: var(--accent);
+  border: 1px solid rgba(59,130,246,0.3);
+}
+
+/* ───── Outlier Section ───── */
+.outlier-card {
+  background: var(--surface); border: 1px dashed var(--purple);
+  border-radius: var(--radius); padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem; position: relative;
+}
+.outlier-badge {
+  position: absolute; top: -8px; right: 16px;
+  padding: 0.15rem 0.6rem; background: var(--purple);
+  border-radius: 4px; font-size: 0.65rem; font-weight: 700;
+  color: white; text-transform: uppercase; letter-spacing: 1px;
+}
+.outlier-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; }
+.outlier-meta { font-size: 0.8rem; color: var(--text-muted); }
+
+/* ───── Events Section ───── */
+.timeline { position: relative; padding-left: 2rem; }
+.timeline::before {
+  content: ''; position: absolute; left: 7px; top: 0; bottom: 0;
+  width: 2px; background: linear-gradient(to bottom, var(--accent), var(--purple), var(--accent));
+}
+.timeline-item {
+  position: relative; padding: 0.75rem 1.25rem 0.75rem 1.5rem;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); margin-bottom: 1rem;
+}
+.timeline-item::before {
+  content: ''; position: absolute; left: -1.85rem; top: 1.1rem;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--accent); border: 2px solid var(--bg);
+}
+.timeline-date { font-size: 0.75rem; color: var(--accent); font-weight: 600; margin-bottom: 0.25rem; }
+.timeline-title { font-size: 0.9rem; font-weight: 500; margin-bottom: 0.25rem; }
+.timeline-source { font-size: 0.7rem; color: var(--text-muted); }
+.timeline-desc { font-size: 0.8rem; color: var(--text-dim); margin-top: 0.25rem; }
+
+/* ───── Source Overview ───── */
+.sources-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 0.75rem;
+}
+.source-card {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.75rem 1rem; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 8px;
+}
+.source-status { width: 8px; height: 8px; border-radius: 50%; }
+.source-status.active { background: var(--green); }
+.source-status.inactive { background: var(--red); }
+.source-name { font-size: 0.85rem; font-weight: 500; flex: 1; }
+.source-cat {
+  font-size: 0.65rem; color: var(--text-muted);
+  padding: 0.15rem 0.5rem; background: var(--bg2); border-radius: 4px;
+}
+
+/* ───── Loading State ───── */
+.loading-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(10,14,23,0.85); z-index: 1000;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem;
+}
+.loading-overlay.active { display: flex; }
+.loading-spinner {
+  width: 60px; height: 60px; border: 3px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 1.1rem; font-weight: 500; color: var(--text-dim); }
+.loading-sub {
+  font-size: 0.85rem; color: var(--text-muted); max-width: 400px; text-align: center;
+}
+.loading-progress { width: 300px; height: 4px; background: var(--surface); border-radius: 2px; overflow: hidden; }
+.loading-progress-bar {
+  height: 100%; background: linear-gradient(90deg, var(--accent), var(--purple));
+  border-radius: 2px; width: 0%; transition: width 0.5s ease;
+}
+
+/* ───── Empty State ───── */
+.empty-state { text-align: center; padding: 4rem 2rem; }
+.empty-icon { font-size: 4rem; margin-bottom: 1rem; opacity: 0.3; }
+.empty-title { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-dim); }
+.empty-text { color: var(--text-muted); max-width: 500px; margin: 0 auto; }
+
+/* ───── Tabs ───── */
+.tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 2rem; }
+.tab {
+  padding: 0.75rem 1.5rem; background: transparent; border: none;
+  color: var(--text-muted); font-size: 0.9rem; font-weight: 500;
+  cursor: pointer; position: relative; transition: all 0.2s;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); }
+.tab.active::after {
+  content: ''; position: absolute; bottom: -2px; left: 0; right: 0;
+  height: 2px; background: var(--accent);
+}
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ───── Coverage Bars ───── */
+.coverage-visual { display: flex; gap: 2rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+.coverage-bar-group { flex: 1; min-width: 200px; }
+.coverage-bar-label {
+  font-size: 0.7rem; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.35rem;
+}
+.coverage-bar-track { height: 8px; background: var(--bg2); border-radius: 4px; overflow: hidden; }
+.coverage-bar-fill { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
+.cat-wire { background: var(--cyan); }
+.cat-newspaper { background: var(--accent); }
+.cat-cable_news { background: var(--yellow); }
+.cat-newsletter { background: var(--green); }
+.cat-magazine { background: var(--purple); }
+.cat-think_tank { background: var(--pink); }
+.cat-podcast { background: var(--orange); }
+.cat-government { background: var(--red); }
+.cat-aggregator { background: var(--text-muted); }
+
+/* ───── Special Take Box ───── */
+.special-take {
+  background: linear-gradient(135deg, rgba(168,85,247,0.1), rgba(99,102,241,0.1));
+  border: 1px solid rgba(168,85,247,0.3);
+  border-radius: 8px; padding: 1rem 1.25rem; margin-top: 0.75rem;
+}
+.special-take-label {
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--purple); font-weight: 700; margin-bottom: 0.35rem;
+}
+.special-take-content { font-size: 0.85rem; color: var(--text-dim); line-height: 1.6; }
+
+/* ───── Feed Log ───── */
+.feed-log {
+  max-height: 150px; overflow-y: auto; font-size: 0.7rem;
+  color: var(--text-muted); margin-top: 0.5rem; font-family: monospace;
+  background: var(--bg2); border-radius: 6px; padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+}
+.feed-log div { padding: 1px 0; }
+.feed-log .ok { color: var(--green); }
+.feed-log .fail { color: var(--red); }
+.feed-log .info { color: var(--accent); }
+
+/* ───── Responsive ───── */
+@media (max-width: 768px) {
+  .header { padding: 1rem; }
+  .main { padding: 1rem; }
+  .topic-header { padding: 1rem; }
+  .topic-detail { padding: 0 1rem 1rem; }
+  .controls { width: 100%; justify-content: center; }
+  .scan-btn { width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">NP</div>
+    <div>
+      <h1>NewsPulse</h1>
+      <div class="subtitle">American Politics News Radar &mdash; Standalone</div>
+    </div>
+  </div>
+  <div class="controls">
+    <div class="time-selector">
+      <button class="time-btn" data-hours="2">2h</button>
+      <button class="time-btn active" data-hours="4">4h</button>
+      <button class="time-btn" data-hours="6">6h</button>
+      <button class="time-btn" data-hours="12">12h</button>
+      <button class="time-btn" data-hours="24">24h</button>
+    </div>
+    <button class="scan-btn" id="scanBtn" onclick="runScan()">GIVE ME THE LATEST</button>
+  </div>
+</header>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loadingText">Scanning sources...</div>
+  <div class="loading-sub" id="loadingSub">
+    Reaching out to 40+ news sources via CORS proxies &mdash; this runs entirely in your browser
+  </div>
+  <div class="loading-progress">
+    <div class="loading-progress-bar" id="loadingBar"></div>
+  </div>
+  <div class="feed-log" id="feedLog"></div>
+</div>
+
+<!-- Main Content -->
+<main class="main" id="mainContent">
+
+  <div class="empty-state" id="emptyState">
+    <div class="empty-icon">&#9881;</div>
+    <div class="empty-title">Ready to Scan</div>
+    <div class="empty-text">
+      Press <strong>"GIVE ME THE LATEST"</strong> to scan 40+ American politics
+      news sources. Everything runs in your browser &mdash; no server needed.
+      RSS feeds are fetched through a CORS proxy.
+    </div>
+  </div>
+
+  <div id="resultsContainer" style="display:none;">
+    <div class="status-bar" id="statusBar">
+      <div class="status-item">
+        <div class="status-dot"></div>
+        <span class="status-label">Last scan:</span>
+        <span class="status-value" id="statusTime">--</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Articles:</span>
+        <span class="status-value" id="statusArticles">0</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Sources reached:</span>
+        <span class="status-value" id="statusSources">0</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Topics found:</span>
+        <span class="status-value" id="statusTopics">0</span>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="topics" onclick="switchTab('topics')">Top Topics</button>
+      <button class="tab" data-tab="outliers" onclick="switchTab('outliers')">Outliers &amp; Hidden Gems</button>
+      <button class="tab" data-tab="events" onclick="switchTab('events')">Upcoming Events</button>
+      <button class="tab" data-tab="sources" onclick="switchTab('sources')">Source Map</button>
+    </div>
+
+    <div class="tab-content active" id="tab-topics">
+      <div class="section-header">
+        <h2>Topics by Coverage</h2>
+        <span class="section-badge" id="topicCount">0 topics</span>
+      </div>
+      <div class="topics-grid" id="topicsGrid"></div>
+    </div>
+
+    <div class="tab-content" id="tab-outliers">
+      <div class="section-header">
+        <h2>Outliers &amp; Hidden Gems</h2>
+        <span class="section-badge" style="background:var(--purple);">What others missed</span>
+      </div>
+      <div id="outliersContainer"></div>
+    </div>
+
+    <div class="tab-content" id="tab-events">
+      <div class="section-header">
+        <h2>Upcoming Political Events</h2>
+        <span class="section-badge" style="background:var(--green);">From news feeds</span>
+      </div>
+      <div class="timeline" id="eventsTimeline"></div>
+    </div>
+
+    <div class="tab-content" id="tab-sources">
+      <div class="section-header">
+        <h2>Source Map</h2>
+        <span class="section-badge" id="sourceCountBadge">0 sources</span>
+      </div>
+      <div class="sources-grid" id="sourcesGrid"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// NewsPulse Standalone — Everything runs in the browser
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ───── Source Registry (43 feeds) ─────
+const SOURCES = [
+  { name:"Associated Press", url:"https://rsshub.app/apnews/topics/politics", backup:"https://news.google.com/rss/search?q=site:apnews.com+politics&hl=en-US&gl=US&ceid=US:en", category:"wire", lean:"center" },
+  { name:"Reuters US", url:"https://news.google.com/rss/search?q=site:reuters.com+US+politics&hl=en-US&gl=US&ceid=US:en", category:"wire", lean:"center" },
+  { name:"New York Times - Politics", url:"https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml", category:"newspaper", lean:"center-left" },
+  { name:"Washington Post - Politics", url:"https://feeds.washingtonpost.com/rss/politics", category:"newspaper", lean:"center-left" },
+  { name:"Wall Street Journal - US", url:"https://feeds.a.dj.com/rss/RSSWorldNews.xml", category:"newspaper", lean:"center-right" },
+  { name:"USA Today - News", url:"https://news.google.com/rss/search?q=site:usatoday.com+politics&hl=en-US&gl=US&ceid=US:en", category:"newspaper", lean:"center" },
+  { name:"CNN Politics", url:"http://rss.cnn.com/rss/cnn_allpolitics.rss", category:"cable_news", lean:"center-left" },
+  { name:"Fox News - Politics", url:"https://moxie.foxnews.com/google-publisher/politics.xml", category:"cable_news", lean:"right" },
+  { name:"MSNBC / NBC News", url:"https://feeds.nbcnews.com/nbcnews/public/politics", category:"cable_news", lean:"left" },
+  { name:"CBS News - Politics", url:"https://www.cbsnews.com/latest/rss/politics", category:"cable_news", lean:"center" },
+  { name:"ABC News - Politics", url:"https://abcnews.go.com/abcnews/politicsheadlines", category:"cable_news", lean:"center" },
+  { name:"Politico", url:"https://rss.politico.com/politics-news.xml", category:"newsletter", lean:"center" },
+  { name:"The Hill", url:"https://thehill.com/feed/", category:"newsletter", lean:"center" },
+  { name:"Axios", url:"https://api.axios.com/feed/", category:"newsletter", lean:"center" },
+  { name:"RealClearPolitics", url:"https://feeds.feedburner.com/realclearpolitics/qlMj", category:"aggregator", lean:"center-right" },
+  { name:"The Daily Beast", url:"https://feeds.thedailybeast.com/rss/articles", category:"newsletter", lean:"left" },
+  { name:"HuffPost Politics", url:"https://www.huffpost.com/section/politics/feed", category:"newsletter", lean:"left" },
+  { name:"The Atlantic", url:"https://www.theatlantic.com/feed/channel/politics/", category:"magazine", lean:"center-left" },
+  { name:"National Review", url:"https://www.nationalreview.com/feed/", category:"magazine", lean:"right" },
+  { name:"The New Yorker - News", url:"https://www.newyorker.com/feed/news", category:"magazine", lean:"left" },
+  { name:"Vox", url:"https://www.vox.com/rss/politics/index.xml", category:"magazine", lean:"left" },
+  { name:"The Economist - US", url:"https://www.economist.com/united-states/rss.xml", category:"magazine", lean:"center" },
+  { name:"Brookings Institution", url:"https://www.brookings.edu/feed/", category:"think_tank", lean:"center-left" },
+  { name:"CATO Institute", url:"https://www.cato.org/rss/recent-opeds", category:"think_tank", lean:"libertarian" },
+  { name:"Heritage Foundation", url:"https://www.heritage.org/rss/all-research-and-commentary", category:"think_tank", lean:"right" },
+  { name:"Center for American Progress", url:"https://www.americanprogress.org/feed/", category:"think_tank", lean:"left" },
+  { name:"Council on Foreign Relations", url:"https://www.cfr.org/rss.xml", category:"think_tank", lean:"center" },
+  { name:"American Enterprise Institute", url:"https://www.aei.org/feed/", category:"think_tank", lean:"center-right" },
+  { name:"NPR Politics Podcast", url:"https://feeds.npr.org/510310/podcast.xml", category:"podcast", lean:"center" },
+  { name:"The Daily (NYT)", url:"https://feeds.simplecast.com/54nAGcIl", category:"podcast", lean:"center-left" },
+  { name:"Pod Save America", url:"https://feeds.megaphone.fm/pod-save-america", category:"podcast", lean:"left" },
+  { name:"The Ben Shapiro Show", url:"https://feeds.megaphone.fm/WWO3519750118", category:"podcast", lean:"right" },
+  { name:"FiveThirtyEight Politics", url:"https://feeds.megaphone.fm/ESP4810498498", category:"podcast", lean:"center" },
+  { name:"Up First (NPR)", url:"https://feeds.npr.org/510318/podcast.xml", category:"podcast", lean:"center" },
+  { name:"White House Briefing Room", url:"https://www.whitehouse.gov/feed/", category:"government", lean:"official" },
+  { name:"Congressional Record (GovInfo)", url:"https://www.govinfo.gov/rss/crec.xml", category:"government", lean:"official" },
+  { name:"Google News - US Politics", url:"https://news.google.com/rss/topics/CAAqBwgKMJTGlgswrq2yAw?hl=en-US&gl=US&ceid=US:en", category:"aggregator", lean:"mixed" },
+  { name:"Google News - US Headlines", url:"https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en", category:"aggregator", lean:"mixed" },
+  { name:"Google News - Congress", url:"https://news.google.com/rss/search?q=congress+senate+house+bill+vote+when:1d&hl=en-US&gl=US&ceid=US:en", category:"aggregator", lean:"mixed" },
+  { name:"Google News - White House", url:"https://news.google.com/rss/search?q=white+house+president+executive+order+when:1d&hl=en-US&gl=US&ceid=US:en", category:"aggregator", lean:"mixed" },
+  { name:"Google News - Supreme Court", url:"https://news.google.com/rss/search?q=supreme+court+ruling+decision+when:1d&hl=en-US&gl=US&ceid=US:en", category:"aggregator", lean:"mixed" },
+];
+
+const CATEGORY_LABELS = {
+  wire:"Wire Service", newspaper:"Major Newspaper", cable_news:"Cable/Broadcast News",
+  newsletter:"Political Newsletter", aggregator:"News Aggregator",
+  magazine:"Magazine / Long-Form", think_tank:"Think Tank",
+  podcast:"Podcast", government:"Government / Official",
+};
+
+const LEAN_LABELS = {
+  center:"Center", "center-left":"Center-Left", "center-right":"Center-Right",
+  left:"Left", right:"Right", libertarian:"Libertarian", official:"Official", mixed:"Mixed",
+};
+
+// ───── CORS Proxy ─────
+// We try multiple proxies in case one is down
+const CORS_PROXIES = [
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+];
+
+async function fetchWithCorsProxy(url, timeoutMs = 12000) {
+  for (const proxyFn of CORS_PROXIES) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      const resp = await fetch(proxyFn(url), { signal: controller.signal });
+      clearTimeout(timer);
+      if (resp.ok) {
+        return await resp.text();
+      }
+    } catch (e) {
+      // Try next proxy
+    }
+  }
+  throw new Error(`All proxies failed for ${url}`);
+}
+
+// ───── XML / RSS Parsing (browser DOMParser) ─────
+function parseRSSDate(dateStr) {
+  if (!dateStr) return null;
+  try {
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? null : d;
+  } catch { return null; }
+}
+
+function stripHtml(html) {
+  if (!html) return '';
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  return tmp.textContent || tmp.innerText || '';
+}
+
+function parseFeedXml(xmlText) {
+  const articles = [];
+  let doc;
+  try {
+    doc = new DOMParser().parseFromString(xmlText, 'text/xml');
+  } catch { return []; }
+
+  if (doc.querySelector('parsererror')) {
+    // Try to fix common XML issues and re-parse
+    xmlText = xmlText.replace(/&(?!amp;|lt;|gt;|quot;|apos;|#)/g, '&amp;');
+    try {
+      doc = new DOMParser().parseFromString(xmlText, 'text/xml');
+    } catch { return []; }
+    if (doc.querySelector('parsererror')) return [];
+  }
+
+  const root = doc.documentElement;
+  const tagName = root.tagName.toLowerCase();
+
+  if (tagName === 'feed') {
+    // Atom feed
+    const entries = root.querySelectorAll('entry');
+    entries.forEach(entry => {
+      const title = (entry.querySelector('title')?.textContent || '').trim();
+      const linkEl = entry.querySelector('link[rel="alternate"]') || entry.querySelector('link');
+      const link = linkEl?.getAttribute('href') || '';
+      const summary = stripHtml(entry.querySelector('content')?.textContent || entry.querySelector('summary')?.textContent || '');
+      const dateStr = entry.querySelector('updated')?.textContent || entry.querySelector('published')?.textContent || '';
+      articles.push({ title, link, summary: summary.substring(0, 500), published: parseRSSDate(dateStr) });
+    });
+  } else {
+    // RSS feed
+    const items = doc.querySelectorAll('item');
+    items.forEach(item => {
+      const title = (item.querySelector('title')?.textContent || '').trim();
+      const link = (item.querySelector('link')?.textContent || '').trim();
+      const desc = stripHtml(item.querySelector('description')?.textContent || '');
+      const dateStr = item.querySelector('pubDate')?.textContent
+        || item.getElementsByTagNameNS('http://purl.org/dc/elements/1.1/', 'date')?.[0]?.textContent
+        || '';
+      articles.push({ title, link, summary: desc.substring(0, 500), published: parseRSSDate(dateStr) });
+    });
+  }
+
+  return articles.filter(a => a.title);
+}
+
+// ───── Fetch All Feeds ─────
+async function fetchAllFeeds(hoursBack) {
+  const cutoff = new Date(Date.now() - hoursBack * 60 * 60 * 1000);
+  const allArticles = [];
+  const sourcesReached = new Set();
+  const log = document.getElementById('feedLog');
+
+  function logMsg(msg, cls) {
+    const div = document.createElement('div');
+    div.className = cls || '';
+    div.textContent = msg;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  // Fetch in parallel batches of 8 to avoid overwhelming proxies
+  const batchSize = 8;
+  const total = SOURCES.length;
+  let completed = 0;
+
+  for (let i = 0; i < total; i += batchSize) {
+    const batch = SOURCES.slice(i, i + batchSize);
+    const promises = batch.map(async (source) => {
+      const urls = [source.url];
+      if (source.backup) urls.push(source.backup);
+
+      for (const feedUrl of urls) {
+        try {
+          const xml = await fetchWithCorsProxy(feedUrl);
+          const rawArticles = parseFeedXml(xml);
+
+          let count = 0;
+          for (const art of rawArticles) {
+            art.source_name = source.name;
+            art.source_category = source.category;
+            art.source_lean = source.lean;
+            // Keep if within time window or no date
+            if (art.published === null || art.published >= cutoff) {
+              allArticles.push(art);
+              count++;
+            }
+          }
+
+          if (count > 0 || rawArticles.length > 0) {
+            sourcesReached.add(source.name);
+            logMsg(`OK ${source.name}: ${count} articles (${rawArticles.length} total)`, 'ok');
+          } else {
+            logMsg(`OK ${source.name}: 0 in window (${rawArticles.length} total)`, 'info');
+            sourcesReached.add(source.name);
+          }
+          return; // Success, skip backup
+        } catch (e) {
+          if (feedUrl === urls[urls.length - 1]) {
+            logMsg(`FAIL ${source.name}: ${e.message}`, 'fail');
+          }
+        }
+      }
+    });
+
+    await Promise.all(promises);
+    completed += batch.length;
+
+    // Update progress bar
+    const pct = Math.round((completed / total) * 100);
+    document.getElementById('loadingBar').style.width = pct + '%';
+    document.getElementById('loadingText').textContent =
+      `Fetching feeds... ${completed}/${total} sources`;
+  }
+
+  return { articles: allArticles, sourcesReached: sourcesReached.size };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TF-IDF + Clustering Engine (pure JavaScript)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const ENGLISH_STOP_WORDS = new Set([
+  'a','about','above','after','again','against','all','am','an','and','any','are',
+  'aren','as','at','be','because','been','before','being','below','between','both',
+  'but','by','can','couldn','d','did','didn','do','does','doesn','doing','don',
+  'down','during','each','few','for','from','further','get','got','had','hadn',
+  'has','hasn','have','haven','having','he','her','here','hers','herself','him',
+  'himself','his','how','i','if','in','into','is','isn','it','its','itself',
+  'just','ll','m','ma','me','might','mightn','more','most','mustn','my','myself',
+  'needn','no','nor','not','now','o','of','off','on','once','only','or','other',
+  'our','ours','ourselves','out','over','own','re','s','same','shan','she',
+  'should','shouldn','so','some','such','t','than','that','the','their','theirs',
+  'them','themselves','then','there','these','they','this','those','through','to',
+  'too','under','until','up','ve','very','was','wasn','we','were','weren','what',
+  'when','where','which','while','who','whom','why','will','with','won','would',
+  'wouldn','y','you','your','yours','yourself','yourselves',
+]);
+
+const NEWS_STOP_WORDS = new Set([
+  'said','says','would','could','also','new','one','two','like','just','get',
+  'make','year','years','time','first','last','week','day','today','monday',
+  'tuesday','wednesday','thursday','friday','saturday','sunday','according',
+  'report','reports','news','breaking','update','latest','analysis','opinion',
+  'editorial','us','u','s','america','american','americans','united','states',
+  'people','know','way','think','going','want','really','much','back',
+]);
+
+function tokenize(text) {
+  return text.toLowerCase()
+    .replace(/[^a-z0-9\s'-]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 2 && !ENGLISH_STOP_WORDS.has(w) && !NEWS_STOP_WORDS.has(w));
+}
+
+function getNgrams(tokens, n) {
+  const ngrams = [];
+  for (let i = 0; i <= tokens.length - n; i++) {
+    ngrams.push(tokens.slice(i, i + n).join(' '));
+  }
+  return ngrams;
+}
+
+function getTokensWithNgrams(text) {
+  const tokens = tokenize(text);
+  return [...tokens, ...getNgrams(tokens, 2)];
+}
+
+// Build TF-IDF matrix
+function buildTfidf(texts) {
+  const docs = texts.map(t => getTokensWithNgrams(t));
+  const df = {};    // document frequency
+  const N = docs.length;
+
+  // Count document frequencies
+  docs.forEach(tokens => {
+    const unique = new Set(tokens);
+    unique.forEach(term => { df[term] = (df[term] || 0) + 1; });
+  });
+
+  // Filter: keep terms in 1-85% of docs, max 5000 features
+  const minDf = 1;
+  const maxDf = Math.max(2, Math.floor(N * 0.85));
+  let vocab = Object.keys(df).filter(t => df[t] >= minDf && df[t] <= maxDf);
+
+  // Sort by df (descending) and take top 5000
+  vocab.sort((a, b) => df[b] - df[a]);
+  vocab = vocab.slice(0, 5000);
+  const vocabIdx = {};
+  vocab.forEach((term, i) => { vocabIdx[term] = i; });
+
+  // Compute TF-IDF vectors
+  const idf = {};
+  vocab.forEach(term => { idf[term] = Math.log((N + 1) / (df[term] + 1)) + 1; });
+
+  const vectors = docs.map(tokens => {
+    const tf = {};
+    tokens.forEach(t => { if (vocabIdx[t] !== undefined) tf[t] = (tf[t] || 0) + 1; });
+
+    // Normalize TF
+    const maxTf = Math.max(1, ...Object.values(tf));
+    const vec = new Float64Array(vocab.length);
+    for (const term in tf) {
+      vec[vocabIdx[term]] = (tf[term] / maxTf) * idf[term];
+    }
+
+    // L2 normalize
+    let norm = 0;
+    for (let i = 0; i < vec.length; i++) norm += vec[i] * vec[i];
+    norm = Math.sqrt(norm);
+    if (norm > 0) for (let i = 0; i < vec.length; i++) vec[i] /= norm;
+
+    return vec;
+  });
+
+  return { vectors, vocab, vocabIdx, idf };
+}
+
+// Cosine similarity between two vectors (already L2-normalized, so just dot product)
+function cosineSim(a, b) {
+  let dot = 0;
+  for (let i = 0; i < a.length; i++) dot += a[i] * b[i];
+  return dot;
+}
+
+// Agglomerative clustering (average linkage)
+function agglomerativeCluster(simMatrix, threshold) {
+  const N = simMatrix.length;
+  const labels = new Int32Array(N);
+  for (let i = 0; i < N; i++) labels[i] = i;
+
+  // Build list of all pairwise similarities above threshold
+  const pairs = [];
+  for (let i = 0; i < N; i++) {
+    for (let j = i + 1; j < N; j++) {
+      if (simMatrix[i][j] >= threshold) {
+        pairs.push({ i, j, sim: simMatrix[i][j] });
+      }
+    }
+  }
+  pairs.sort((a, b) => b.sim - a.sim);
+
+  // Union-Find for efficient merging
+  const parent = new Int32Array(N);
+  const rank = new Int32Array(N);
+  for (let i = 0; i < N; i++) parent[i] = i;
+
+  function find(x) {
+    while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; }
+    return x;
+  }
+
+  function union(x, y) {
+    const rx = find(x), ry = find(y);
+    if (rx === ry) return;
+    if (rank[rx] < rank[ry]) parent[rx] = ry;
+    else if (rank[rx] > rank[ry]) parent[ry] = rx;
+    else { parent[ry] = rx; rank[rx]++; }
+  }
+
+  // Get members of each cluster
+  function getClusterMembers() {
+    const clusters = {};
+    for (let i = 0; i < N; i++) {
+      const root = find(i);
+      if (!clusters[root]) clusters[root] = [];
+      clusters[root].push(i);
+    }
+    return Object.values(clusters);
+  }
+
+  // Compute average inter-cluster similarity
+  function avgClusterSim(c1, c2) {
+    let total = 0, count = 0;
+    for (const i of c1) {
+      for (const j of c2) {
+        total += simMatrix[i][j];
+        count++;
+      }
+    }
+    return count > 0 ? total / count : 0;
+  }
+
+  // Process merges - only merge if average linkage >= threshold
+  for (const { i, j } of pairs) {
+    if (find(i) === find(j)) continue;
+
+    const members = getClusterMembers();
+    const ci = members.find(c => c.includes(i));
+    const cj = members.find(c => c.includes(j));
+
+    if (ci && cj && avgClusterSim(ci, cj) >= threshold) {
+      union(i, j);
+    }
+  }
+
+  return getClusterMembers();
+}
+
+// Extract key phrases from a set of texts
+function extractKeyPhrases(texts, topN = 5) {
+  if (!texts.length) return [];
+  const { vectors, vocab } = buildTfidf(texts);
+  if (!vocab.length) return [];
+
+  // Average TF-IDF across docs
+  const avg = new Float64Array(vocab.length);
+  vectors.forEach(v => { for (let i = 0; i < v.length; i++) avg[i] += v[i]; });
+  for (let i = 0; i < avg.length; i++) avg[i] /= vectors.length;
+
+  // Get top terms
+  const scored = vocab.map((term, i) => ({ term, score: avg[i] }));
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, topN).filter(s => s.score > 0).map(s => s.term);
+}
+
+// ───── Main Analysis Pipeline ─────
+function clusterArticles(articles, similarityThreshold = 0.20) {
+  if (!articles.length) return [];
+  if (articles.length === 1) return [articles];
+
+  // Combine title (3x weight) + summary for each article
+  const texts = articles.map(a => {
+    const title = a.title || '';
+    const summary = a.summary || '';
+    return `${title} ${title} ${title} ${summary}`;
+  });
+
+  const { vectors } = buildTfidf(texts);
+
+  // Compute similarity matrix
+  const N = vectors.length;
+  const simMatrix = [];
+  for (let i = 0; i < N; i++) {
+    simMatrix[i] = new Float64Array(N);
+    simMatrix[i][i] = 1.0;
+    for (let j = i + 1; j < N; j++) {
+      const sim = cosineSim(vectors[i], vectors[j]);
+      simMatrix[i][j] = sim;
+      simMatrix[j] = simMatrix[j] || new Float64Array(N);
+      simMatrix[j][i] = sim;
+    }
+  }
+
+  // Cluster
+  const clusterIndices = agglomerativeCluster(simMatrix, similarityThreshold);
+
+  // Map back to articles
+  return clusterIndices
+    .map(indices => indices.map(i => articles[i]))
+    .sort((a, b) => b.length - a.length);
+}
+
+function computeSourceAlignment(cluster) {
+  if (cluster.length <= 1) return { score: 0, details: 'Single source coverage' };
+
+  const sourceTexts = {};
+  cluster.forEach(a => {
+    const name = a.source_name;
+    sourceTexts[name] = (sourceTexts[name] || '') + ' ' + (a.title || '') + ' ' + (a.summary || '');
+  });
+
+  const names = Object.keys(sourceTexts);
+  if (names.length <= 1) return { score: 100, details: 'Only one source' };
+
+  const texts = Object.values(sourceTexts);
+  try {
+    const { vectors } = buildTfidf(texts);
+    let totalSim = 0, count = 0;
+    for (let i = 0; i < vectors.length; i++) {
+      for (let j = i + 1; j < vectors.length; j++) {
+        totalSim += cosineSim(vectors[i], vectors[j]);
+        count++;
+      }
+    }
+    const avgSim = count > 0 ? totalSim / count : 0;
+    const pct = Math.round(avgSim * 100);
+    return {
+      score: pct,
+      details: pct > 70 ? 'High consensus' : pct > 40 ? 'Moderate agreement' : 'Divergent perspectives',
+    };
+  } catch {
+    return { score: 50, details: 'Moderate agreement' };
+  }
+}
+
+function detectPerspectiveDifferences(cluster) {
+  const leanGroups = {};
+  cluster.forEach(a => {
+    const lean = a.source_lean || 'center';
+    if (!leanGroups[lean]) leanGroups[lean] = [];
+    leanGroups[lean].push(a);
+  });
+
+  const leans = Object.keys(leanGroups);
+  if (leans.length < 2) return [];
+
+  return leans.map(lean => {
+    const group = leanGroups[lean];
+    const titles = group.map(a => a.title);
+    const keyPhrases = extractKeyPhrases(titles, 3);
+    const sources = [...new Set(group.map(a => a.source_name))];
+    return {
+      perspective: lean,
+      sources,
+      emphasis: keyPhrases,
+      sample_headline: titles[0] || '',
+    };
+  }).filter(p => p.emphasis.length > 0);
+}
+
+function analyzeTopics(articles) {
+  if (!articles.length) return { topics: [], outliers: [], meta: { total_articles: 0, total_sources: 0 } };
+
+  const clusters = clusterArticles(articles);
+  const topics = [];
+  const outlierCandidates = [];
+  const allSourceNames = new Set(articles.map(a => a.source_name));
+
+  clusters.forEach(cluster => {
+    const sourceNames = [...new Set(cluster.map(a => a.source_name))];
+    const sourceCategories = [...new Set(cluster.map(a => a.source_category))];
+    const sourceLeans = [...new Set(cluster.map(a => a.source_lean))];
+
+    const texts = cluster.map(a => (a.title || '') + ' ' + (a.summary || ''));
+    const keyPhrases = extractKeyPhrases(texts, 5);
+
+    // Representative title = longest
+    const titles = cluster.map(a => a.title);
+    const headline = titles.reduce((a, b) => a.length >= b.length ? a : b, '');
+
+    const alignment = computeSourceAlignment(cluster);
+    const perspectives = detectPerspectiveDifferences(cluster);
+
+    const pubDates = cluster.map(a => a.published).filter(Boolean);
+    const earliest = pubDates.length ? new Date(Math.min(...pubDates.map(d => d.getTime()))) : null;
+    const latest = pubDates.length ? new Date(Math.max(...pubDates.map(d => d.getTime()))) : null;
+
+    // Category counts
+    const catCounts = {};
+    cluster.forEach(a => { catCounts[a.source_category] = (catCounts[a.source_category] || 0) + 1; });
+
+    const entry = {
+      rank: 0,
+      headline,
+      key_phrases: keyPhrases,
+      article_count: cluster.length,
+      source_count: sourceNames.length,
+      sources: sourceNames,
+      source_categories: sourceCategories,
+      source_leans: sourceLeans,
+      category_counts: catCounts,
+      alignment,
+      perspectives,
+      earliest: earliest ? earliest.toISOString() : null,
+      latest: latest ? latest.toISOString() : null,
+      articles: cluster.map(a => ({
+        title: a.title,
+        link: a.link,
+        source: a.source_name,
+        source_category: a.source_category,
+        source_lean: a.source_lean,
+        published: a.published ? a.published.toISOString() : null,
+        summary: a.summary || '',
+      })),
+    };
+
+    if (sourceNames.length <= 2 && cluster.length <= 3) {
+      outlierCandidates.push(entry);
+    } else {
+      topics.push(entry);
+    }
+  });
+
+  // Sort by source_count then article_count
+  topics.sort((a, b) => (b.source_count - a.source_count) || (b.article_count - a.article_count));
+  topics.forEach((t, i) => { t.rank = i + 1; });
+
+  // Pick top outliers, prefer think tanks / podcasts
+  outlierCandidates.sort((a, b) => {
+    const aSpecial = a.source_categories.some(c => c === 'think_tank' || c === 'podcast') ? 1 : 0;
+    const bSpecial = b.source_categories.some(c => c === 'think_tank' || c === 'podcast') ? 1 : 0;
+    return (bSpecial - aSpecial) || (b.article_count - a.article_count);
+  });
+  const outliers = outlierCandidates.slice(0, 5);
+
+  return {
+    topics,
+    outliers,
+    meta: {
+      total_articles: articles.length,
+      total_sources: allSourceNames.size,
+      generated_at: new Date().toISOString(),
+    },
+  };
+}
+
+// ───── Event Detection (from RSS articles) ─────
+function detectEvents(articles) {
+  const eventKeywords = [
+    'hearing','vote','scheduled','upcoming','set to','press conference',
+    'summit','meeting','testimony','trial','ruling','deadline',
+    'ceremony','speech','address','confirmation','nomination','briefing',
+  ];
+
+  const events = [];
+  const seen = new Set();
+
+  articles.forEach(a => {
+    const combined = ((a.title || '') + ' ' + (a.summary || '')).toLowerCase();
+    const hasEventKeyword = eventKeywords.some(kw => combined.includes(kw));
+    if (hasEventKeyword) {
+      const key = (a.title || '').toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 50);
+      if (!seen.has(key) && a.title) {
+        seen.add(key);
+        events.push({
+          title: a.title,
+          date: a.published ? a.published.toISOString() : null,
+          date_display: a.published
+            ? a.published.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' })
+            : 'Date TBD',
+          source: a.source_name,
+          link: a.link,
+          description: (a.summary || '').substring(0, 200),
+        });
+      }
+    }
+  });
+
+  // Sort: dated first
+  events.sort((a, b) => {
+    if (a.date && b.date) return new Date(a.date) - new Date(b.date);
+    if (a.date) return -1;
+    if (b.date) return 1;
+    return 0;
+  });
+
+  return events.slice(0, 20);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UI Logic
+// ═══════════════════════════════════════════════════════════════════════════
+
+let selectedHours = 4;
+let currentData = null;
+let currentEvents = null;
+
+// Time selector
+document.querySelectorAll('.time-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedHours = parseInt(btn.dataset.hours);
+  });
+});
+
+// Tab switching
+function switchTab(tabId) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+  document.querySelector(`.tab[data-tab="${tabId}"]`).classList.add('active');
+  document.getElementById(`tab-${tabId}`).classList.add('active');
+}
+
+// Main scan
+async function runScan() {
+  const btn = document.getElementById('scanBtn');
+  const overlay = document.getElementById('loadingOverlay');
+  const bar = document.getElementById('loadingBar');
+  const log = document.getElementById('feedLog');
+
+  btn.classList.add('loading');
+  btn.textContent = 'SCANNING...';
+  overlay.classList.add('active');
+  bar.style.width = '0%';
+  log.innerHTML = '';
+
+  try {
+    // Phase 1: Fetch all feeds
+    document.getElementById('loadingText').textContent = 'Fetching RSS feeds...';
+    const { articles, sourcesReached } = await fetchAllFeeds(selectedHours);
+
+    if (articles.length === 0) {
+      document.getElementById('loadingText').textContent = 'No articles found in time window';
+      document.getElementById('loadingSub').textContent =
+        `Tried ${SOURCES.length} sources but got 0 articles within ${selectedHours}h. Try a wider window.`;
+      await new Promise(r => setTimeout(r, 3000));
+      return;
+    }
+
+    // Phase 2: Cluster and analyze
+    document.getElementById('loadingText').textContent =
+      `Clustering ${articles.length} articles...`;
+    bar.style.width = '85%';
+
+    // Run analysis (give UI a tick to update)
+    await new Promise(r => setTimeout(r, 50));
+    const analysis = analyzeTopics(articles);
+
+    // Add source registry
+    analysis.source_registry = {
+      total_configured: SOURCES.length,
+      categories: CATEGORY_LABELS,
+      leans: LEAN_LABELS,
+      sources: SOURCES.map(s => ({ name: s.name, category: s.category, lean: s.lean })),
+    };
+    analysis.meta.total_sources = sourcesReached;
+
+    currentData = analysis;
+
+    // Phase 3: Detect events
+    document.getElementById('loadingText').textContent = 'Detecting events...';
+    bar.style.width = '95%';
+    await new Promise(r => setTimeout(r, 50));
+    currentEvents = detectEvents(articles);
+
+    bar.style.width = '100%';
+
+    // Render
+    renderResults();
+    renderEvents();
+    renderSources();
+
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('resultsContainer').style.display = 'block';
+
+  } catch (err) {
+    console.error('Scan failed:', err);
+    document.getElementById('loadingText').textContent = 'Scan failed!';
+    document.getElementById('loadingSub').textContent = err.message;
+    await new Promise(r => setTimeout(r, 3000));
+  } finally {
+    overlay.classList.remove('active');
+    btn.classList.remove('loading');
+    btn.textContent = 'GIVE ME THE LATEST';
+  }
+}
+
+// ───── Render Results ─────
+function renderResults() {
+  if (!currentData) return;
+  const { topics, outliers, meta } = currentData;
+
+  // Status bar
+  document.getElementById('statusTime').textContent = new Date(meta.generated_at).toLocaleTimeString();
+  document.getElementById('statusArticles').textContent = meta.total_articles;
+  document.getElementById('statusSources').textContent = meta.total_sources;
+  document.getElementById('statusTopics').textContent = topics.length;
+  document.getElementById('topicCount').textContent = `${topics.length} topics`;
+
+  // Topics
+  const grid = document.getElementById('topicsGrid');
+  grid.innerHTML = '';
+  topics.forEach((topic, idx) => {
+    const card = document.createElement('div');
+    card.className = 'topic-card';
+    card.innerHTML = buildTopicCard(topic, idx);
+    card.querySelector('.topic-header').addEventListener('click', () => {
+      card.classList.toggle('expanded');
+    });
+    grid.appendChild(card);
+  });
+
+  // Outliers
+  const outliersEl = document.getElementById('outliersContainer');
+  outliersEl.innerHTML = '';
+  if (outliers.length === 0) {
+    outliersEl.innerHTML = '<p style="color:var(--text-muted);">No significant outliers detected in this scan.</p>';
+  } else {
+    outliers.forEach(o => { outliersEl.innerHTML += buildOutlierCard(o); });
+  }
+}
+
+function buildTopicCard(topic, idx) {
+  const rankClass = idx < 3 ? `rank-${idx+1}` : 'rank-other';
+  const alignClass = topic.alignment.score > 70 ? 'alignment-high' :
+                     topic.alignment.score > 40 ? 'alignment-mid' : 'alignment-low';
+
+  const allCats = ['wire','newspaper','cable_news','newsletter','magazine','think_tank','podcast','government','aggregator'];
+  const catLabels = {
+    wire:'Wire',newspaper:'Newspaper',cable_news:'Cable News',
+    newsletter:'Newsletter',magazine:'Magazine',think_tank:'Think Tank',
+    podcast:'Podcast',government:'Government',aggregator:'Aggregator'
+  };
+  const catCounts = topic.category_counts || {};
+  const maxCatCount = Math.max(1, ...Object.values(catCounts));
+  const coverageBars = allCats.filter(cat => catCounts[cat]).map(cat => {
+    const count = catCounts[cat] || 0;
+    const pct = Math.round((count / maxCatCount) * 100);
+    return `<div class="coverage-bar-group">
+      <div class="coverage-bar-label">${catLabels[cat] || cat} (${count})</div>
+      <div class="coverage-bar-track">
+        <div class="coverage-bar-fill cat-${cat}" style="width:${pct}%"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const sourceChips = (topic.sources || []).map(s => {
+    const lean = getLeanForSource(s);
+    return `<span class="source-chip"><span class="lean-dot lean-${lean}"></span>${escapeHtml(s)}</span>`;
+  }).join('');
+
+  let perspectivesHTML = '';
+  if (topic.perspectives && topic.perspectives.length > 1) {
+    perspectivesHTML = `<div class="detail-section">
+      <h4>Perspective Differences</h4>
+      ${topic.perspectives.map(p => `
+        <div class="perspective-card">
+          <div class="perspective-lean" style="color:${getLeanColor(p.perspective)}">${p.perspective} perspective</div>
+          <div class="perspective-sources">${p.sources.join(', ')}</div>
+          <div class="perspective-emphasis">Emphasis: ${p.emphasis.join(', ')}</div>
+          ${p.sample_headline ? `<div class="perspective-headline">"${escapeHtml(p.sample_headline)}"</div>` : ''}
+        </div>
+      `).join('')}
+    </div>`;
+  }
+
+  let specialTake = '';
+  const thinkTankArticles = (topic.articles || []).filter(a => a.source_category === 'think_tank');
+  const podcastArticles = (topic.articles || []).filter(a => a.source_category === 'podcast');
+  const specialArticle = thinkTankArticles[0] || podcastArticles[0];
+  if (specialArticle) {
+    specialTake = `<div class="special-take">
+      <div class="special-take-label">Special Take by ${escapeHtml(specialArticle.source)}</div>
+      <div class="special-take-content">"${escapeHtml(specialArticle.title)}"${specialArticle.summary ? ' &mdash; ' + escapeHtml(specialArticle.summary.substring(0, 200)) : ''}</div>
+    </div>`;
+  }
+
+  const articleItems = (topic.articles || []).slice(0, 10).map(a => {
+    const timeStr = a.published ? new Date(a.published).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
+    return `<div class="article-item">
+      <span class="article-source-tag">${escapeHtml(a.source)}</span>
+      <a href="${a.link}" target="_blank" rel="noopener" class="article-link">${escapeHtml(a.title)}</a>
+      ${timeStr ? `<span class="article-time">${timeStr}</span>` : ''}
+    </div>`;
+  }).join('');
+
+  const keyphrases = (topic.key_phrases || []).map(kp =>
+    `<span class="keyphrase-bubble">${escapeHtml(kp)}</span>`
+  ).join('');
+
+  return `
+    <div class="topic-header">
+      <div class="topic-rank ${rankClass}">${idx + 1}</div>
+      <div class="topic-info">
+        <div class="topic-title">${escapeHtml(topic.headline)}</div>
+        <div class="topic-meta">
+          <span class="meta-chip"><span class="num">${topic.source_count}</span> sources</span>
+          <span class="meta-chip"><span class="num">${topic.article_count}</span> articles</span>
+          <span class="meta-chip">${topic.alignment.details}</span>
+        </div>
+      </div>
+      <div class="topic-expand-icon">&#9660;</div>
+    </div>
+    <div class="alignment-bar-container">
+      <div class="alignment-bar">
+        <div class="alignment-fill ${alignClass}" style="width:${topic.alignment.score}%"></div>
+      </div>
+      <div class="alignment-label">
+        <span>Source Alignment</span>
+        <span>${topic.alignment.score}%</span>
+      </div>
+    </div>
+    <div class="topic-detail">
+      <div class="detail-section">
+        <h4>Key Phrases</h4>
+        <div class="keyphrase-bubbles">${keyphrases || '<span style="color:var(--text-muted)">—</span>'}</div>
+      </div>
+      <div class="detail-section">
+        <h4>Source Coverage by Type</h4>
+        <div class="coverage-visual">${coverageBars}</div>
+      </div>
+      <div class="detail-section">
+        <h4>Covering Sources</h4>
+        <div class="source-chips">${sourceChips}</div>
+      </div>
+      ${perspectivesHTML}
+      ${specialTake}
+      <div class="detail-section">
+        <h4>Articles</h4>
+        <div class="article-list">${articleItems}</div>
+      </div>
+    </div>
+  `;
+}
+
+function buildOutlierCard(outlier) {
+  const sourceList = (outlier.sources || []).join(', ');
+  const articleLinks = (outlier.articles || []).slice(0, 3).map(a =>
+    `<a href="${a.link}" target="_blank" rel="noopener" class="article-link" style="display:block;margin-top:0.3rem;font-size:0.8rem;">${escapeHtml(a.title)} <span style="color:var(--text-muted)">(${escapeHtml(a.source)})</span></a>`
+  ).join('');
+
+  return `<div class="outlier-card">
+    <div class="outlier-badge">Hidden Gem</div>
+    <div class="outlier-title">${escapeHtml(outlier.headline)}</div>
+    <div class="outlier-meta">
+      Covered by: <strong>${escapeHtml(sourceList)}</strong> (${outlier.source_count} source${outlier.source_count !== 1 ? 's' : ''})
+    </div>
+    ${articleLinks}
+  </div>`;
+}
+
+// ───── Render Events ─────
+function renderEvents() {
+  const timeline = document.getElementById('eventsTimeline');
+  timeline.innerHTML = '';
+
+  if (!currentEvents || currentEvents.length === 0) {
+    timeline.innerHTML = '<p style="color:var(--text-muted);padding:1rem;">No upcoming events detected in the current news cycle.</p>';
+    return;
+  }
+
+  currentEvents.forEach(ev => {
+    timeline.innerHTML += `
+      <div class="timeline-item">
+        <div class="timeline-date">${ev.date_display || 'Date TBD'}</div>
+        <div class="timeline-title">${escapeHtml(ev.title)}</div>
+        <div class="timeline-source">Source: ${escapeHtml(ev.source)}</div>
+        ${ev.description ? `<div class="timeline-desc">${escapeHtml(ev.description)}</div>` : ''}
+      </div>
+    `;
+  });
+}
+
+// ───── Render Sources ─────
+function renderSources() {
+  if (!currentData || !currentData.source_registry) return;
+
+  const sources = currentData.source_registry.sources;
+  const grid = document.getElementById('sourcesGrid');
+  grid.innerHTML = '';
+  document.getElementById('sourceCountBadge').textContent = `${sources.length} configured`;
+
+  const activeSources = new Set();
+  if (currentData.topics) {
+    currentData.topics.forEach(t => { (t.sources || []).forEach(s => activeSources.add(s)); });
+  }
+  if (currentData.outliers) {
+    currentData.outliers.forEach(t => { (t.sources || []).forEach(s => activeSources.add(s)); });
+  }
+
+  const catLabels = currentData.source_registry.categories || {};
+
+  sources.forEach(s => {
+    const active = activeSources.has(s.name);
+    grid.innerHTML += `
+      <div class="source-card">
+        <div class="source-status ${active ? 'active' : 'inactive'}"></div>
+        <div class="source-name">${escapeHtml(s.name)}</div>
+        <span class="lean-dot lean-${s.lean}" title="${s.lean}"></span>
+        <div class="source-cat">${catLabels[s.category] || s.category}</div>
+      </div>
+    `;
+  });
+}
+
+// ───── Helpers ─────
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function getLeanForSource(sourceName) {
+  if (!currentData || !currentData.source_registry) return 'center';
+  const s = currentData.source_registry.sources.find(x => x.name === sourceName);
+  return s ? s.lean : 'center';
+}
+
+function getLeanColor(lean) {
+  const colors = {
+    'left': '#3b82f6', 'center-left': '#60a5fa', 'center': '#a3a3a3',
+    'center-right': '#fb923c', 'right': '#ef4444', 'libertarian': '#f59e0b',
+    'official': '#10b981', 'mixed': '#8b5cf6',
+  };
+  return colors[lean] || '#a3a3a3';
+}
+</script>
+</body>
+</html>
