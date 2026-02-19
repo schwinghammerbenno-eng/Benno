@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NewsPulse — American Politics News Radar</title>
+<style>
+/* ───── CSS Reset & Variables ───── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0e17;
+  --bg2: #111827;
+  --bg3: #1a2235;
+  --surface: #1e293b;
+  --surface2: #253346;
+  --border: #334155;
+  --text: #e2e8f0;
+  --text-dim: #94a3b8;
+  --text-muted: #64748b;
+  --accent: #3b82f6;
+  --accent2: #6366f1;
+  --accent-glow: rgba(59, 130, 246, 0.3);
+  --green: #10b981;
+  --yellow: #f59e0b;
+  --red: #ef4444;
+  --orange: #f97316;
+  --purple: #a855f7;
+  --pink: #ec4899;
+  --cyan: #06b6d4;
+  --radius: 10px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* ───── Header ───── */
+.header {
+  background: linear-gradient(135deg, var(--bg2), var(--bg3));
+  border-bottom: 1px solid var(--border);
+  padding: 1.5rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.logo-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: white;
+  letter-spacing: -1px;
+}
+
+.logo h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.logo .subtitle {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.time-selector {
+  display: flex;
+  background: var(--surface);
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.time-btn {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.time-btn.active {
+  background: var(--accent);
+  color: white;
+}
+
+.time-btn:hover:not(.active) {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+.scan-btn {
+  padding: 0.75rem 2rem;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none;
+  border-radius: var(--radius);
+  color: white;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: all 0.3s;
+  box-shadow: 0 4px 15px var(--accent-glow);
+  position: relative;
+  overflow: hidden;
+}
+
+.scan-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 25px var(--accent-glow);
+}
+
+.scan-btn:active {
+  transform: translateY(0);
+}
+
+.scan-btn.loading {
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.scan-btn.loading::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ───── Main Layout ───── */
+.main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+/* ───── Status Bar ───── */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1rem 1.5rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.status-label { color: var(--text-muted); }
+.status-value { color: var(--text); font-weight: 600; }
+
+/* ───── Section Headers ───── */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--border);
+}
+
+.section-header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.section-badge {
+  padding: 0.25rem 0.75rem;
+  background: var(--accent);
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+}
+
+/* ───── Topic Cards ───── */
+.topics-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.topic-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: all 0.3s;
+}
+
+.topic-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 30px rgba(59, 130, 246, 0.1);
+}
+
+.topic-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  cursor: pointer;
+}
+
+.topic-rank {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: white;
+}
+
+.rank-1 { background: linear-gradient(135deg, #f59e0b, #ef4444); }
+.rank-2 { background: linear-gradient(135deg, #8b5cf6, #6366f1); }
+.rank-3 { background: linear-gradient(135deg, #06b6d4, #3b82f6); }
+.rank-other { background: var(--surface2); color: var(--text-dim); }
+
+.topic-info { flex: 1; min-width: 0; }
+
+.topic-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-bottom: 0.5rem;
+}
+
+.topic-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  background: var(--bg2);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.meta-chip .num { color: var(--accent); font-weight: 700; }
+
+.topic-expand-icon {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: transform 0.3s;
+  font-size: 1.2rem;
+}
+
+.topic-card.expanded .topic-expand-icon {
+  transform: rotate(180deg);
+}
+
+/* Source alignment bar */
+.alignment-bar-container {
+  padding: 0 1.5rem 1rem;
+}
+
+.alignment-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg2);
+  overflow: hidden;
+  position: relative;
+}
+
+.alignment-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.alignment-high { background: linear-gradient(90deg, var(--green), #34d399); }
+.alignment-mid { background: linear-gradient(90deg, var(--yellow), var(--orange)); }
+.alignment-low { background: linear-gradient(90deg, var(--orange), var(--red)); }
+
+.alignment-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 0.3rem;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Topic Detail Panel */
+.topic-detail {
+  display: none;
+  padding: 0 1.5rem 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.topic-card.expanded .topic-detail {
+  display: block;
+}
+
+.detail-section {
+  margin-bottom: 1.25rem;
+}
+
+.detail-section h4 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.detail-text {
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  line-height: 1.7;
+}
+
+/* Source Chips */
+.source-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.source-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+}
+
+.lean-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.lean-left { background: #3b82f6; }
+.lean-center-left { background: #60a5fa; }
+.lean-center { background: #a3a3a3; }
+.lean-center-right { background: #fb923c; }
+.lean-right { background: #ef4444; }
+.lean-libertarian { background: #f59e0b; }
+.lean-official { background: #10b981; }
+.lean-mixed { background: #8b5cf6; }
+
+/* Perspective Cards */
+.perspective-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.perspective-lean {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.perspective-sources {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.perspective-emphasis {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.perspective-headline {
+  font-size: 0.85rem;
+  color: var(--text);
+  margin-top: 0.35rem;
+  padding-left: 0.75rem;
+  border-left: 3px solid var(--accent);
+}
+
+/* Article List */
+.article-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.article-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg2);
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.article-item:hover { background: var(--bg3); }
+
+.article-source-tag {
+  flex-shrink: 0;
+  font-size: 0.65rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  background: var(--surface2);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.article-link {
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  transition: color 0.2s;
+}
+
+.article-link:hover { color: var(--accent); }
+
+.article-time {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ───── Key Phrases Viz ───── */
+.keyphrase-bubbles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.keyphrase-bubble {
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--accent);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+/* ───── Outlier Section ───── */
+.outliers-section {
+  margin-bottom: 3rem;
+}
+
+.outlier-card {
+  background: var(--surface);
+  border: 1px dashed var(--purple);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+  position: relative;
+}
+
+.outlier-badge {
+  position: absolute;
+  top: -8px;
+  right: 16px;
+  padding: 0.15rem 0.6rem;
+  background: var(--purple);
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.outlier-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.outlier-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* ───── Events Section ───── */
+.events-section {
+  margin-bottom: 3rem;
+}
+
+.timeline {
+  position: relative;
+  padding-left: 2rem;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--accent), var(--purple), var(--accent));
+}
+
+.timeline-item {
+  position: relative;
+  padding: 0.75rem 1.25rem;
+  padding-left: 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+}
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -1.85rem;
+  top: 1.1rem;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg);
+}
+
+.timeline-date {
+  font-size: 0.75rem;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.timeline-title {
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.timeline-source {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.timeline-desc {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-top: 0.25rem;
+}
+
+/* ───── Source Overview ───── */
+.sources-overview {
+  margin-bottom: 3rem;
+}
+
+.sources-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 0.75rem;
+}
+
+.source-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.source-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.source-status.active { background: var(--green); }
+.source-status.inactive { background: var(--red); }
+
+.source-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  flex: 1;
+}
+
+.source-cat {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  padding: 0.15rem 0.5rem;
+  background: var(--bg2);
+  border-radius: 4px;
+}
+
+/* ───── Loading State ───── */
+.loading-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 14, 23, 0.85);
+  z-index: 1000;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+}
+
+.loading-overlay.active { display: flex; }
+
+.loading-spinner {
+  width: 60px;
+  height: 60px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+.loading-sub {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  max-width: 400px;
+  text-align: center;
+}
+
+.loading-progress {
+  width: 300px;
+  height: 4px;
+  background: var(--surface);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.loading-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--purple));
+  border-radius: 2px;
+  width: 0%;
+  animation: progress-fake 12s ease-in-out forwards;
+}
+
+@keyframes progress-fake {
+  0% { width: 0%; }
+  20% { width: 25%; }
+  50% { width: 55%; }
+  70% { width: 75%; }
+  90% { width: 88%; }
+  100% { width: 95%; }
+}
+
+/* ───── Empty State ───── */
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  opacity: 0.3;
+}
+
+.empty-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text-dim);
+}
+
+.empty-text {
+  color: var(--text-muted);
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+/* ───── Tabs ───── */
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 2rem;
+}
+
+.tab {
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.tab:hover { color: var(--text); }
+
+.tab.active {
+  color: var(--accent);
+}
+
+.tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+}
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ───── Coverage Radar Chart (CSS-based) ───── */
+.coverage-visual {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+.coverage-bar-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+.coverage-bar-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.35rem;
+}
+
+.coverage-bar-track {
+  height: 8px;
+  background: var(--bg2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.coverage-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.8s ease;
+}
+
+.cat-wire { background: var(--cyan); }
+.cat-newspaper { background: var(--accent); }
+.cat-cable_news { background: var(--yellow); }
+.cat-newsletter { background: var(--green); }
+.cat-magazine { background: var(--purple); }
+.cat-think_tank { background: var(--pink); }
+.cat-podcast { background: var(--orange); }
+.cat-government { background: var(--red); }
+.cat-aggregator { background: var(--text-muted); }
+
+/* ───── Special Take Box ───── */
+.special-take {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(99, 102, 241, 0.1));
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-top: 0.75rem;
+}
+
+.special-take-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--purple);
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+.special-take-content {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+/* ───── Responsive ───── */
+@media (max-width: 768px) {
+  .header { padding: 1rem; }
+  .main { padding: 1rem; }
+  .topic-header { padding: 1rem; }
+  .topic-detail { padding: 0 1rem 1rem; }
+  .controls { width: 100%; justify-content: center; }
+  .scan-btn { width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">NP</div>
+    <div>
+      <h1>NewsPulse</h1>
+      <div class="subtitle">American Politics News Radar</div>
+    </div>
+  </div>
+  <div class="controls">
+    <div class="time-selector">
+      <button class="time-btn" data-hours="2">2h</button>
+      <button class="time-btn active" data-hours="4">4h</button>
+      <button class="time-btn" data-hours="6">6h</button>
+      <button class="time-btn" data-hours="12">12h</button>
+    </div>
+    <button class="scan-btn" id="scanBtn" onclick="runScan()">
+      GIVE ME THE LATEST
+    </button>
+  </div>
+</header>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loadingText">Scanning sources...</div>
+  <div class="loading-sub" id="loadingSub">
+    Reaching out to 35+ news sources, newsletters, podcasts, and think tanks
+  </div>
+  <div class="loading-progress">
+    <div class="loading-progress-bar" id="loadingBar"></div>
+  </div>
+</div>
+
+<!-- Main Content -->
+<main class="main" id="mainContent">
+
+  <!-- Empty state (shown initially) -->
+  <div class="empty-state" id="emptyState">
+    <div class="empty-icon">&#9881;</div>
+    <div class="empty-title">Ready to Scan</div>
+    <div class="empty-text">
+      Press <strong>"GIVE ME THE LATEST"</strong> to scan 35+ American politics
+      news sources, newsletters, podcasts, and think tanks for the most
+      talked-about topics right now.
+    </div>
+  </div>
+
+  <!-- Results (hidden initially) -->
+  <div id="resultsContainer" style="display:none;">
+
+    <!-- Status bar -->
+    <div class="status-bar" id="statusBar">
+      <div class="status-item">
+        <div class="status-dot"></div>
+        <span class="status-label">Last scan:</span>
+        <span class="status-value" id="statusTime">--</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Articles:</span>
+        <span class="status-value" id="statusArticles">0</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Sources reached:</span>
+        <span class="status-value" id="statusSources">0</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Topics found:</span>
+        <span class="status-value" id="statusTopics">0</span>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" data-tab="topics" onclick="switchTab('topics')">
+        Top Topics
+      </button>
+      <button class="tab" data-tab="outliers" onclick="switchTab('outliers')">
+        Outliers & Hidden Gems
+      </button>
+      <button class="tab" data-tab="events" onclick="switchTab('events')">
+        Upcoming Events
+      </button>
+      <button class="tab" data-tab="sources" onclick="switchTab('sources')">
+        Source Map
+      </button>
+    </div>
+
+    <!-- Tab: Topics -->
+    <div class="tab-content active" id="tab-topics">
+      <div class="section-header">
+        <h2>Topics by Coverage</h2>
+        <span class="section-badge" id="topicCount">0 topics</span>
+      </div>
+      <div class="topics-grid" id="topicsGrid"></div>
+    </div>
+
+    <!-- Tab: Outliers -->
+    <div class="tab-content" id="tab-outliers">
+      <div class="section-header">
+        <h2>Outliers & Hidden Gems</h2>
+        <span class="section-badge" style="background:var(--purple);">What others missed</span>
+      </div>
+      <div id="outliersContainer"></div>
+    </div>
+
+    <!-- Tab: Events -->
+    <div class="tab-content" id="tab-events">
+      <div class="section-header">
+        <h2>Upcoming Political Events</h2>
+        <span class="section-badge" style="background:var(--green);">Next 5 days</span>
+      </div>
+      <div class="timeline" id="eventsTimeline"></div>
+    </div>
+
+    <!-- Tab: Sources -->
+    <div class="tab-content" id="tab-sources">
+      <div class="section-header">
+        <h2>Source Map</h2>
+        <span class="section-badge" id="sourceCountBadge">0 sources</span>
+      </div>
+      <div class="sources-grid" id="sourcesGrid"></div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+// ───── State ─────
+let selectedHours = 4;
+let currentData = null;
+let currentEvents = null;
+
+// ───── Time Selector ─────
+document.querySelectorAll('.time-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedHours = parseInt(btn.dataset.hours);
+  });
+});
+
+// ───── Tab Switching ─────
+function switchTab(tabId) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+  document.querySelector(`.tab[data-tab="${tabId}"]`).classList.add('active');
+  document.getElementById(`tab-${tabId}`).classList.add('active');
+}
+
+// ───── Main Scan ─────
+async function runScan() {
+  const btn = document.getElementById('scanBtn');
+  const overlay = document.getElementById('loadingOverlay');
+  const bar = document.getElementById('loadingBar');
+
+  btn.classList.add('loading');
+  btn.textContent = 'SCANNING...';
+  overlay.classList.add('active');
+  bar.style.animation = 'none';
+  bar.offsetHeight; // force reflow
+  bar.style.animation = 'progress-fake 15s ease-in-out forwards';
+
+  const loadingSteps = [
+    'Reaching out to wire services...',
+    'Scanning major newspapers...',
+    'Checking cable news feeds...',
+    'Parsing political newsletters...',
+    'Reading think tank publications...',
+    'Downloading podcast descriptions...',
+    'Checking government schedules...',
+    'Clustering topics...',
+    'Analyzing perspectives...',
+    'Finding outliers...',
+  ];
+
+  let stepIdx = 0;
+  const stepInterval = setInterval(() => {
+    if (stepIdx < loadingSteps.length) {
+      document.getElementById('loadingText').textContent = loadingSteps[stepIdx];
+      stepIdx++;
+    }
+  }, 1500);
+
+  try {
+    // Fetch news and events in parallel
+    const [newsResp, eventsResp] = await Promise.all([
+      fetch(`/api/scan?hours=${selectedHours}`),
+      fetch('/api/events?days=5'),
+    ]);
+
+    currentData = await newsResp.json();
+    const eventsData = await eventsResp.json();
+    currentEvents = eventsData.events || [];
+
+    renderResults();
+    renderEvents();
+    renderSources();
+
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('resultsContainer').style.display = 'block';
+  } catch (err) {
+    console.error('Scan failed:', err);
+    document.getElementById('loadingText').textContent = 'Scan failed!';
+    document.getElementById('loadingSub').textContent = err.message;
+    await new Promise(r => setTimeout(r, 2000));
+  } finally {
+    clearInterval(stepInterval);
+    overlay.classList.remove('active');
+    btn.classList.remove('loading');
+    btn.textContent = 'GIVE ME THE LATEST';
+  }
+}
+
+// ───── Render Results ─────
+function renderResults() {
+  if (!currentData) return;
+
+  const { topics, outliers, meta } = currentData;
+
+  // Status bar
+  const scanTime = new Date(meta.generated_at);
+  document.getElementById('statusTime').textContent = scanTime.toLocaleTimeString();
+  document.getElementById('statusArticles').textContent = meta.total_articles;
+  document.getElementById('statusSources').textContent = meta.total_sources;
+  document.getElementById('statusTopics').textContent = topics.length;
+  document.getElementById('topicCount').textContent = `${topics.length} topics`;
+
+  // Topics
+  const grid = document.getElementById('topicsGrid');
+  grid.innerHTML = '';
+
+  topics.forEach((topic, idx) => {
+    const card = document.createElement('div');
+    card.className = 'topic-card';
+    card.innerHTML = buildTopicCard(topic, idx);
+    card.querySelector('.topic-header').addEventListener('click', () => {
+      card.classList.toggle('expanded');
+    });
+    grid.appendChild(card);
+  });
+
+  // Outliers
+  const outliersEl = document.getElementById('outliersContainer');
+  outliersEl.innerHTML = '';
+
+  if (outliers.length === 0) {
+    outliersEl.innerHTML = '<p style="color:var(--text-muted);">No significant outliers detected in this scan.</p>';
+  } else {
+    outliers.forEach(o => {
+      outliersEl.innerHTML += buildOutlierCard(o);
+    });
+  }
+}
+
+function buildTopicCard(topic, idx) {
+  const rankClass = idx < 3 ? `rank-${idx+1}` : 'rank-other';
+  const alignClass = topic.alignment.score > 70 ? 'alignment-high' :
+                     topic.alignment.score > 40 ? 'alignment-mid' : 'alignment-low';
+
+  // Build category coverage bars from actual data
+  const allCats = ['wire','newspaper','cable_news','newsletter','magazine','think_tank','podcast','government','aggregator'];
+  const catLabels = {
+    wire:'Wire',newspaper:'Newspaper',cable_news:'Cable News',
+    newsletter:'Newsletter',magazine:'Magazine',think_tank:'Think Tank',
+    podcast:'Podcast',government:'Government',aggregator:'Aggregator'
+  };
+  const catCounts = topic.category_counts || {};
+  const maxCatCount = Math.max(1, ...Object.values(catCounts));
+  const coverageBars = allCats.filter(cat => catCounts[cat]).map(cat => {
+    const count = catCounts[cat] || 0;
+    const pct = Math.round((count / maxCatCount) * 100);
+    return `<div class="coverage-bar-group">
+      <div class="coverage-bar-label">${catLabels[cat] || cat} (${count})</div>
+      <div class="coverage-bar-track">
+        <div class="coverage-bar-fill cat-${cat}" style="width:${pct}%"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Source chips
+  const sourceChips = (topic.sources || []).map(s => {
+    const lean = getLeanForSource(s);
+    return `<span class="source-chip"><span class="lean-dot lean-${lean}"></span>${s}</span>`;
+  }).join('');
+
+  // Perspectives
+  let perspectivesHTML = '';
+  if (topic.perspectives && topic.perspectives.length > 1) {
+    perspectivesHTML = `<div class="detail-section">
+      <h4>Perspective Differences</h4>
+      ${topic.perspectives.map(p => `
+        <div class="perspective-card">
+          <div class="perspective-lean" style="color:${getLeanColor(p.perspective)}">${p.perspective} perspective</div>
+          <div class="perspective-sources">${p.sources.join(', ')}</div>
+          <div class="perspective-emphasis">Emphasis: ${p.emphasis.join(', ')}</div>
+          ${p.sample_headline ? `<div class="perspective-headline">"${escapeHtml(p.sample_headline)}"</div>` : ''}
+        </div>
+      `).join('')}
+    </div>`;
+  }
+
+  // Special take (if a think tank or unique source has coverage)
+  let specialTake = '';
+  const thinkTankArticles = (topic.articles || []).filter(a => a.source_category === 'think_tank');
+  const podcastArticles = (topic.articles || []).filter(a => a.source_category === 'podcast');
+  const specialArticle = thinkTankArticles[0] || podcastArticles[0];
+  if (specialArticle) {
+    specialTake = `<div class="special-take">
+      <div class="special-take-label">Special Take by ${specialArticle.source}</div>
+      <div class="special-take-content">"${escapeHtml(specialArticle.title)}"${specialArticle.summary ? ' — ' + escapeHtml(specialArticle.summary.substring(0, 200)) : ''}</div>
+    </div>`;
+  }
+
+  // Article list
+  const articleItems = (topic.articles || []).slice(0, 10).map(a => {
+    const timeStr = a.published ? new Date(a.published).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
+    return `<div class="article-item">
+      <span class="article-source-tag">${a.source}</span>
+      <a href="${a.link}" target="_blank" rel="noopener" class="article-link">${escapeHtml(a.title)}</a>
+      ${timeStr ? `<span class="article-time">${timeStr}</span>` : ''}
+    </div>`;
+  }).join('');
+
+  // Key phrases
+  const keyphrases = (topic.key_phrases || []).map(kp =>
+    `<span class="keyphrase-bubble">${escapeHtml(kp)}</span>`
+  ).join('');
+
+  return `
+    <div class="topic-header">
+      <div class="topic-rank ${rankClass}">${idx + 1}</div>
+      <div class="topic-info">
+        <div class="topic-title">${escapeHtml(topic.headline)}</div>
+        <div class="topic-meta">
+          <span class="meta-chip"><span class="num">${topic.source_count}</span> sources</span>
+          <span class="meta-chip"><span class="num">${topic.article_count}</span> articles</span>
+          <span class="meta-chip">${topic.alignment.details}</span>
+        </div>
+      </div>
+      <div class="topic-expand-icon">&#9660;</div>
+    </div>
+    <div class="alignment-bar-container">
+      <div class="alignment-bar">
+        <div class="alignment-fill ${alignClass}" style="width:${topic.alignment.score}%"></div>
+      </div>
+      <div class="alignment-label">
+        <span>Source Alignment</span>
+        <span>${topic.alignment.score}%</span>
+      </div>
+    </div>
+    <div class="topic-detail">
+      <div class="detail-section">
+        <h4>Key Phrases</h4>
+        <div class="keyphrase-bubbles">${keyphrases || '<span style="color:var(--text-muted)">—</span>'}</div>
+      </div>
+      <div class="detail-section">
+        <h4>Source Coverage by Type</h4>
+        <div class="coverage-visual">${coverageBars}</div>
+      </div>
+      <div class="detail-section">
+        <h4>Covering Sources</h4>
+        <div class="source-chips">${sourceChips}</div>
+      </div>
+      ${perspectivesHTML}
+      ${specialTake}
+      <div class="detail-section">
+        <h4>Articles</h4>
+        <div class="article-list">${articleItems}</div>
+      </div>
+    </div>
+  `;
+}
+
+function buildOutlierCard(outlier) {
+  const sourceList = (outlier.sources || []).join(', ');
+  const articleLinks = (outlier.articles || []).slice(0, 3).map(a =>
+    `<a href="${a.link}" target="_blank" rel="noopener" class="article-link" style="display:block;margin-top:0.3rem;font-size:0.8rem;">${escapeHtml(a.title)} <span style="color:var(--text-muted)">(${a.source})</span></a>`
+  ).join('');
+
+  return `<div class="outlier-card">
+    <div class="outlier-badge">Hidden Gem</div>
+    <div class="outlier-title">${escapeHtml(outlier.headline)}</div>
+    <div class="outlier-meta">
+      Covered by: <strong>${sourceList}</strong> (${outlier.source_count} source${outlier.source_count !== 1 ? 's' : ''})
+    </div>
+    ${articleLinks}
+  </div>`;
+}
+
+// ───── Render Events ─────
+function renderEvents() {
+  const timeline = document.getElementById('eventsTimeline');
+  timeline.innerHTML = '';
+
+  if (!currentEvents || currentEvents.length === 0) {
+    timeline.innerHTML = '<p style="color:var(--text-muted);padding:1rem;">No upcoming events found. Try scanning again later.</p>';
+    return;
+  }
+
+  currentEvents.forEach(ev => {
+    timeline.innerHTML += `
+      <div class="timeline-item">
+        <div class="timeline-date">${ev.date_display || 'Date TBD'}</div>
+        <div class="timeline-title">${escapeHtml(ev.title)}</div>
+        <div class="timeline-source">Source: ${ev.source}</div>
+        ${ev.description ? `<div class="timeline-desc">${escapeHtml(ev.description)}</div>` : ''}
+      </div>
+    `;
+  });
+}
+
+// ───── Render Sources ─────
+function renderSources() {
+  if (!currentData || !currentData.source_registry) return;
+
+  const sources = currentData.source_registry.sources;
+  const grid = document.getElementById('sourcesGrid');
+  grid.innerHTML = '';
+
+  document.getElementById('sourceCountBadge').textContent = `${sources.length} configured`;
+
+  // Determine which sources returned data
+  const activeSources = new Set();
+  if (currentData.topics) {
+    currentData.topics.forEach(t => {
+      (t.sources || []).forEach(s => activeSources.add(s));
+    });
+  }
+  if (currentData.outliers) {
+    currentData.outliers.forEach(t => {
+      (t.sources || []).forEach(s => activeSources.add(s));
+    });
+  }
+
+  const catLabels = currentData.source_registry.categories || {};
+
+  sources.forEach(s => {
+    const active = activeSources.has(s.name);
+    grid.innerHTML += `
+      <div class="source-card">
+        <div class="source-status ${active ? 'active' : 'inactive'}"></div>
+        <div class="source-name">${s.name}</div>
+        <span class="lean-dot lean-${s.lean}" title="${s.lean}"></span>
+        <div class="source-cat">${catLabels[s.category] || s.category}</div>
+      </div>
+    `;
+  });
+}
+
+// ───── Helpers ─────
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function getLeanForSource(sourceName) {
+  if (!currentData || !currentData.source_registry) return 'center';
+  const s = currentData.source_registry.sources.find(x => x.name === sourceName);
+  return s ? s.lean : 'center';
+}
+
+function getLeanColor(lean) {
+  const colors = {
+    'left': '#3b82f6',
+    'center-left': '#60a5fa',
+    'center': '#a3a3a3',
+    'center-right': '#fb923c',
+    'right': '#ef4444',
+    'libertarian': '#f59e0b',
+    'official': '#10b981',
+    'mixed': '#8b5cf6',
+  };
+  return colors[lean] || '#a3a3a3';
+}
+</script>
+
+</body>
+</html>
