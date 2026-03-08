@@ -2,54 +2,93 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Pferdesprung - Horse Jumping Game</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  /* position:fixed + overflow:hidden on both prevents iOS Safari rubber-band scroll
+     that blocks touch events from reaching the canvas */
+  html {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
   body {
+    position: fixed;
+    width: 100%;
+    height: 100%;
     background: #1a1a2e;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 100vh;
     font-family: Georgia, serif;
     overflow: hidden;
+    /* iOS safe-area (notch / home indicator) */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+             env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
   canvas {
     border: 3px solid #5a3a1a;
     border-radius: 4px;
     box-shadow: 0 0 40px rgba(200, 140, 60, 0.4);
     cursor: pointer;
-    max-width: 100vw;
+    max-width: 100%;
+    /* Prevent iOS Safari from stealing touches for scrolling/zooming */
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
   }
   #hint {
     color: #c8a050;
     font-size: 13px;
-    margin-top: 10px;
+    margin-top: 8px;
     opacity: 0.8;
     letter-spacing: 1px;
+    -webkit-user-select: none;
+    user-select: none;
   }
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hint">LEERTASTE / KLICK zum Springen &nbsp;|&nbsp; R zum Neustart</div>
+<div id="hint">TIPPEN / LEERTASTE zum Springen</div>
+<script>
+  // Show keyboard hint only on non-touch devices
+  if (!('ontouchstart' in window)) {
+    document.getElementById('hint').textContent = 'LEERTASTE / KLICK zum Springen  |  R zum Neustart';
+  }
+</script>
 <script>
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
-// Responsive canvas
+// Responsive canvas with HiDPI (retina) support
 const BASE_W = 900, BASE_H = 400;
 function resize() {
-  const scale = Math.min(window.innerWidth / BASE_W, window.innerHeight / (BASE_H + 60));
-  canvas.width = Math.floor(BASE_W * scale);
-  canvas.height = Math.floor(BASE_H * scale);
-  canvas.style.width = canvas.width + 'px';
-  canvas.style.height = canvas.height + 'px';
+  const dpr = window.devicePixelRatio || 1;
+  // Use clientWidth/clientHeight – more reliable on iOS than innerWidth/innerHeight
+  const availW = document.documentElement.clientWidth  || window.innerWidth;
+  const availH = document.documentElement.clientHeight || window.innerHeight;
+  const scale = Math.min(availW / BASE_W, (availH - 28) / BASE_H);
+  const cssW = Math.max(1, Math.floor(BASE_W * scale));
+  const cssH = Math.max(1, Math.floor(BASE_H * scale));
+  // Physical pixels = CSS pixels × devicePixelRatio → sharp on Retina
+  canvas.width  = Math.floor(cssW * dpr);
+  canvas.height = Math.floor(cssH * dpr);
+  canvas.style.width  = cssW + 'px';
+  canvas.style.height = cssH + 'px';
 }
 resize();
-window.addEventListener('resize', () => { resize(); });
+// Use visualViewport when available (handles iOS Safari toolbar show/hide)
+const vpListener = () => resize();
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', vpListener);
+} else {
+  window.addEventListener('resize', vpListener);
+}
 
 // Scale helper
 function s(v) { return v * (canvas.width / BASE_W); }
@@ -585,6 +624,10 @@ canvas.addEventListener('touchstart', e => { e.preventDefault(); handleJump(); }
 
 // ── Main Loop ─────────────────────────────────────────────────────────────────
 function gameLoop(ts) {
+  // Guard: on first frame lastTime=0; initialise from rAF timestamp
+  // so we never compute a huge dt on iOS where performance.now() and
+  // the rAF timestamp may have different sub-ms origins.
+  if (lastTime === 0) { lastTime = ts; }
   const dt = Math.min(ts - lastTime, 50);
   lastTime = ts;
 
@@ -646,8 +689,7 @@ function gameLoop(ts) {
   animFrame = requestAnimationFrame(gameLoop);
 }
 
-// Kick off
-lastTime = performance.now();
+// Kick off (lastTime=0 is handled inside gameLoop on first frame)
 animFrame = requestAnimationFrame(gameLoop);
 </script>
 </body>
