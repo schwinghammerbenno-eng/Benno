@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>US News Radar</title>
+<style>
+/* ─── Reset & Variables ─────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #09111f;
+  --bg2:      #0f1d31;
+  --bg3:      #162540;
+  --surface:  #1a2f48;
+  --surface2: #1f3855;
+  --border:   #2a4060;
+  --text:     #dce8f8;
+  --dim:      #8aaed0;
+  --muted:    #4d6a8a;
+  --blue:     #3b82f6;
+  --blue2:    #60a5fa;
+  --green:    #22c55e;
+  --yellow:   #eab308;
+  --red:      #ef4444;
+  --orange:   #f97316;
+  --purple:   #a855f7;
+  --cyan:     #06b6d4;
+  --r: 10px;
+  --shadow: 0 4px 32px rgba(0,0,0,.5);
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+a { color: var(--blue2); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ─── Layout ──────────────────────────────────────────────────────────────── */
+.header {
+  background: linear-gradient(135deg, var(--bg2), var(--bg3));
+  border-bottom: 1px solid var(--border);
+  padding: 1.2rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+}
+
+.logo-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+}
+
+.logo h1 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--blue2), var(--cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.logo .sub {
+  font-size: .7rem;
+  color: var(--dim);
+  font-weight: 400;
+  -webkit-text-fill-color: var(--dim);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+
+select, button {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: .4rem .8rem;
+  font-size: .85rem;
+  cursor: pointer;
+}
+
+button.primary {
+  background: linear-gradient(135deg, var(--blue), #2563eb);
+  border: none;
+  font-weight: 600;
+  padding: .4rem 1.2rem;
+}
+button:hover { opacity: .85; }
+button:disabled { opacity: .4; cursor: not-allowed; }
+
+.meta-bar {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: .5rem 2rem;
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  font-size: .78rem;
+  color: var(--dim);
+}
+
+.meta-bar .pill {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: .15rem .7rem;
+  font-size: .75rem;
+}
+
+.meta-bar .pill.green { border-color: var(--green); color: var(--green); }
+.meta-bar .pill.red   { border-color: var(--red);   color: var(--red); }
+.meta-bar .pill.blue  { border-color: var(--blue);  color: var(--blue2); }
+
+/* ─── Tabs ───────────────────────────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 0;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+
+.tab {
+  padding: .75rem 1.5rem;
+  cursor: pointer;
+  font-size: .88rem;
+  font-weight: 500;
+  color: var(--dim);
+  border-bottom: 3px solid transparent;
+  white-space: nowrap;
+  transition: all .15s;
+}
+.tab:hover  { color: var(--text); background: var(--surface); }
+.tab.active { color: var(--blue2); border-bottom-color: var(--blue2); }
+
+/* ─── Main content ───────────────────────────────────────────────────────── */
+.main {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 1.5rem 2rem;
+}
+
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ─── Loading / Error ────────────────────────────────────────────────────── */
+.loading {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--dim);
+}
+.spinner {
+  width: 48px; height: 48px;
+  border: 4px solid var(--border);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.error-box {
+  background: #2d1515;
+  border: 1px solid var(--red);
+  border-radius: var(--r);
+  padding: 1rem 1.5rem;
+  color: #fca5a5;
+  margin-bottom: 1.5rem;
+}
+
+/* ─── Topic cards ────────────────────────────────────────────────────────── */
+.section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 1rem;
+  padding-bottom: .5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.topics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.topic-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 1.1rem 1.3rem;
+  transition: border-color .2s;
+}
+.topic-card:hover { border-color: var(--blue); }
+
+.topic-header {
+  display: flex;
+  align-items: flex-start;
+  gap: .75rem;
+  margin-bottom: .75rem;
+}
+
+.rank-badge {
+  min-width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: .85rem;
+  flex-shrink: 0;
+}
+
+.topic-headline {
+  font-size: .95rem;
+  font-weight: 600;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.topic-stats {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+  margin-bottom: .6rem;
+}
+
+.stat-chip {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: .1rem .6rem;
+  font-size: .72rem;
+  color: var(--dim);
+}
+
+.phrases {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+  margin-bottom: .6rem;
+}
+
+.phrase-tag {
+  background: var(--bg3);
+  border: 1px solid #2a4060;
+  border-radius: 4px;
+  padding: .1rem .45rem;
+  font-size: .7rem;
+  color: var(--cyan);
+}
+
+/* Freshness badge */
+.freshness {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  font-size: .72rem;
+  padding: .12rem .5rem;
+  border-radius: 20px;
+  font-weight: 600;
+}
+.freshness.Breaking  { background: #3f1212; color: #f87171; border: 1px solid #7f1d1d; }
+.freshness.Active    { background: #1e3a1a; color: #86efac; border: 1px solid #166534; }
+.freshness.Developing{ background: #2d2a10; color: #fde68a; border: 1px solid #78350f; }
+.freshness.Ongoing   { background: var(--bg3); color: var(--dim); border: 1px solid var(--border); }
+.freshness.Unknown   { background: var(--bg3); color: var(--muted); border: 1px solid var(--border); }
+
+/* Diversity bar */
+.diversity-bar {
+  height: 4px;
+  background: var(--bg3);
+  border-radius: 2px;
+  margin: .4rem 0;
+  overflow: hidden;
+}
+.diversity-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green), var(--cyan));
+  border-radius: 2px;
+}
+
+.insight-block {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: .5rem .75rem;
+  font-size: .75rem;
+  color: var(--dim);
+  margin-top: .5rem;
+}
+.insight-block .warn { color: var(--yellow); }
+.insight-block .flag { color: var(--orange); }
+
+.framing-list {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  margin-top: .5rem;
+}
+.framing-row {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  font-size: .75rem;
+}
+.lean-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.article-list {
+  margin-top: .6rem;
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+}
+.article-link {
+  font-size: .75rem;
+  color: var(--dim);
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+}
+.article-link:hover { color: var(--blue2); }
+
+/* ─── Regional panel ─────────────────────────────────────────────────────── */
+.regions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: 1.2rem;
+}
+
+.region-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 1.1rem 1.3rem;
+}
+
+.region-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: .75rem;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+.region-icon { font-size: 1.2rem; }
+
+.region-stats {
+  display: flex;
+  gap: .5rem;
+  margin-bottom: .75rem;
+  flex-wrap: wrap;
+}
+
+.sub-title {
+  font-size: .75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--dim);
+  margin: .75rem 0 .4rem;
+  border-top: 1px solid var(--border);
+  padding-top: .6rem;
+}
+
+.reg-topic {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: .5rem .75rem;
+  margin-bottom: .4rem;
+}
+
+.reg-topic-headline {
+  font-size: .82rem;
+  font-weight: 600;
+  margin-bottom: .25rem;
+}
+
+.local-framing-card {
+  background: var(--bg2);
+  border: 1px solid #2a3a55;
+  border-left: 3px solid var(--cyan);
+  border-radius: 6px;
+  padding: .6rem .9rem;
+  margin-bottom: .5rem;
+}
+
+.local-angle-label {
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--cyan);
+}
+
+/* ─── Forward events panel ───────────────────────────────────────────────── */
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: .9rem;
+}
+
+.event-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 1rem 1.3rem;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.urgency-bar {
+  width: 6px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  align-self: stretch;
+}
+.urg-Critical { background: var(--red); }
+.urg-High     { background: var(--orange); }
+.urg-Medium   { background: var(--yellow); }
+.urg-Low      { background: var(--muted); }
+
+.event-body { flex: 1; min-width: 0; }
+
+.event-type {
+  font-size: .75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--cyan);
+  margin-bottom: .3rem;
+}
+
+.urgency-label {
+  display: inline-block;
+  font-size: .7rem;
+  font-weight: 700;
+  padding: .1rem .5rem;
+  border-radius: 20px;
+  margin-left: .5rem;
+}
+.urgency-label.Critical { background: #3f1212; color: #f87171; }
+.urgency-label.High     { background: #3f2a10; color: #fdba74; }
+.urgency-label.Medium   { background: #332e10; color: #fde68a; }
+.urgency-label.Low      { background: var(--bg3); color: var(--dim); }
+
+.signal-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .3rem;
+  margin: .4rem 0;
+}
+
+.signal-pill {
+  background: var(--bg3);
+  border: 1px solid #2a4060;
+  color: var(--blue2);
+  border-radius: 20px;
+  padding: .1rem .55rem;
+  font-size: .7rem;
+  font-style: italic;
+}
+
+/* ─── Journalist insights box ────────────────────────────────────────────── */
+.insights-box {
+  background: linear-gradient(135deg, #0f1f35, #0a1628);
+  border: 1px solid #2a4060;
+  border-radius: var(--r);
+  padding: 1.2rem 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.insights-box h3 {
+  font-size: .85rem;
+  font-weight: 700;
+  color: var(--cyan);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 1rem;
+}
+
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: .75rem;
+}
+
+.insight-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: .8rem 1rem;
+}
+
+.insight-card .label {
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--dim);
+  margin-bottom: .25rem;
+}
+
+.insight-card .value {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--blue2);
+}
+.insight-card .desc {
+  font-size: .72rem;
+  color: var(--dim);
+  margin-top: .15rem;
+}
+
+/* ─── Sources panel ──────────────────────────────────────────────────────── */
+.sources-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: .75rem;
+  margin-bottom: 1.5rem;
+}
+
+.sources-by-region {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: .75rem;
+}
+
+.source-region-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: .9rem 1.1rem;
+}
+
+.source-region-card h4 {
+  font-size: .85rem;
+  font-weight: 700;
+  margin-bottom: .5rem;
+  color: var(--blue2);
+}
+
+.source-item {
+  font-size: .75rem;
+  color: var(--dim);
+  padding: .15rem 0;
+  border-bottom: 1px solid var(--bg3);
+  display: flex;
+  justify-content: space-between;
+}
+
+/* ─── Lean colours ───────────────────────────────────────────────────────── */
+.lean-left        { background: #3b1a5a; }
+.lean-center-left { background: #1a3a5a; }
+.lean-center      { background: #1a3a2a; }
+.lean-center-right{ background: #3a2a0a; }
+.lean-right       { background: #3a1a0a; }
+.lean-libertarian { background: #2a1a4a; }
+
+/* ─── Collapsible articles ───────────────────────────────────────────────── */
+details summary {
+  cursor: pointer;
+  font-size: .75rem;
+  color: var(--blue2);
+  margin-top: .35rem;
+  user-select: none;
+}
+details[open] summary { margin-bottom: .4rem; }
+
+/* ─── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .main { padding: 1rem; }
+  .header { padding: 1rem; }
+  .topics-grid, .regions-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">📡</div>
+    <div>
+      <h1>US News Radar <span class="sub">— ~200 sources scanned</span></h1>
+    </div>
+  </div>
+  <div class="controls">
+    <select id="hoursSelect">
+      <option value="3">Last 3 hours</option>
+      <option value="6" selected>Last 6 hours</option>
+      <option value="12">Last 12 hours</option>
+      <option value="24">Last 24 hours</option>
+      <option value="48">Last 48 hours</option>
+    </select>
+    <button class="primary" id="scanBtn" onclick="runScan()">🔄 Scan Now</button>
+  </div>
+</header>
+
+<div class="meta-bar" id="metaBar" style="display:none">
+  <span id="metaTime"></span>
+  <span class="pill blue" id="metaArticles"></span>
+  <span class="pill blue" id="metaSources"></span>
+  <span class="pill green" id="metaAds"></span>
+  <span class="pill" id="metaTopics"></span>
+  <span class="pill" id="metaRegions"></span>
+</div>
+
+<nav class="tabs">
+  <div class="tab active" data-panel="topicsPanel">🔥 Top 20 Topics</div>
+  <div class="tab" data-panel="regionalPanel">🗺 Regional Analysis</div>
+  <div class="tab" data-panel="forwardPanel">🔭 Upcoming Events</div>
+  <div class="tab" data-panel="insightsPanel">💡 Journalist Insights</div>
+  <div class="tab" data-panel="sourcesPanel">📰 Source Registry</div>
+</nav>
+
+<main class="main">
+  <!-- ── Topics ── -->
+  <div class="panel active" id="topicsPanel">
+    <div id="topicsContent">
+      <div class="loading" id="loadingTopics">
+        <div class="spinner"></div>
+        <p>Scanning ~200 US news sources…</p>
+        <p style="font-size:.8rem;margin-top:.5rem;color:var(--muted)">This takes about 30 seconds on first load</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Regional ── -->
+  <div class="panel" id="regionalPanel">
+    <div id="regionalContent">
+      <div class="loading"><div class="spinner"></div><p>Loading regional data…</p></div>
+    </div>
+  </div>
+
+  <!-- ── Forward ── -->
+  <div class="panel" id="forwardPanel">
+    <div id="forwardContent">
+      <div class="loading"><div class="spinner"></div><p>Detecting upcoming events…</p></div>
+    </div>
+  </div>
+
+  <!-- ── Insights ── -->
+  <div class="panel" id="insightsPanel">
+    <div id="insightsContent">
+      <div class="loading"><div class="spinner"></div><p>Generating insights…</p></div>
+    </div>
+  </div>
+
+  <!-- ── Sources ── -->
+  <div class="panel" id="sourcesPanel">
+    <div id="sourcesContent">
+      <div class="loading"><div class="spinner"></div><p>Loading source registry…</p></div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ── Tab switching ────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById(t.dataset.panel).classList.add('active');
+  });
+});
+
+// ── Lean colour helper ───────────────────────────────────────────────────────
+const LEAN_COLORS = {
+  left:          '#7c3aed',
+  'center-left': '#2563eb',
+  center:        '#059669',
+  'center-right':'#d97706',
+  right:         '#dc2626',
+  libertarian:   '#9333ea',
+  mixed:         '#6b7280',
+  official:      '#6b7280',
+};
+
+function leanColor(lean) {
+  return LEAN_COLORS[lean] || '#6b7280';
+}
+
+function leanLabel(lean) {
+  const map = {left:'Left','center-left':'Center-Left',center:'Center',
+    'center-right':'Center-Right',right:'Right',libertarian:'Libertarian',
+    mixed:'Mixed',official:'Official'};
+  return map[lean] || lean;
+}
+
+// ── Utility ──────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function timeAgo(isoStr) {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  const mins = Math.round((Date.now() - d) / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.round(hrs/24)}d ago`;
+}
+
+// ── Render topics ────────────────────────────────────────────────────────────
+function renderTopics(data) {
+  const topics = data.topics || [];
+  const outliers = data.outliers || [];
+
+  let html = '';
+
+  if (!topics.length) {
+    html = '<div class="error-box">No topics found. Try increasing the time window.</div>';
+  } else {
+    html += `<h2 class="section-title">Top ${topics.length} Topics by Cross-Source Coverage</h2>`;
+    html += '<div class="topics-grid">';
+    topics.forEach(t => { html += renderTopicCard(t); });
+    html += '</div>';
+  }
+
+  if (outliers.length) {
+    html += `<h2 class="section-title">Noteworthy Outliers (niche / underreported)</h2>`;
+    html += '<div class="topics-grid">';
+    outliers.forEach(o => { html += renderTopicCard(o, true); });
+    html += '</div>';
+  }
+
+  document.getElementById('topicsContent').innerHTML = html;
+}
+
+function renderTopicCard(t, isOutlier = false) {
+  const div = t.source_diversity || {};
+  const fresh = t.freshness || {};
+  const framing = t.framing_by_lean || [];
+
+  const freshClass = fresh.label || 'Unknown';
+  const freshEmoji = {Breaking:'🔴',Active:'🟢',Developing:'🟡',Ongoing:'⚪',Unknown:''}[freshClass] || '';
+
+  let framingHtml = '';
+  if (framing.length > 1) {
+    framingHtml = '<div class="framing-list">';
+    framing.forEach(f => {
+      const col = leanColor(f.lean);
+      framingHtml += `
+        <div class="framing-row">
+          <span class="lean-dot" style="background:${col}"></span>
+          <span style="color:${col};font-weight:600;min-width:90px">${esc(leanLabel(f.lean))}</span>
+          <span style="color:var(--dim)">${esc((f.key_phrases||[]).join(', '))}</span>
+        </div>`;
+    });
+    framingHtml += '</div>';
+  }
+
+  let insightHtml = '';
+  if (t.concentration_warning) {
+    insightHtml += `<div class="insight-block"><span class="warn">⚠ ${esc(t.concentration_warning)}</span></div>`;
+  }
+  if (t.underreported) {
+    insightHtml += `<div class="insight-block"><span class="flag">📍 More regional than national coverage — possible emerging story.</span></div>`;
+  }
+
+  const topArticles = (t.articles || []).slice(0, 5);
+  const articlesHtml = topArticles.map(a =>
+    `<div class="article-link">
+      <span style="color:${leanColor(a.lean)}">●</span>
+      <a href="${esc(a.link)}" target="_blank" rel="noopener">${esc(a.title)}</a>
+      <span style="color:var(--muted);white-space:nowrap">${esc(a.source)} · ${timeAgo(a.published)}</span>
+    </div>`
+  ).join('');
+
+  const phrasesHtml = (t.key_phrases || []).map(p =>
+    `<span class="phrase-tag">${esc(p)}</span>`
+  ).join('');
+
+  const borderStyle = isOutlier ? 'border-left: 3px solid var(--purple);' : '';
+
+  return `
+  <div class="topic-card" style="${borderStyle}">
+    <div class="topic-header">
+      <div class="rank-badge">${isOutlier ? '★' : t.rank}</div>
+      <div class="topic-headline">${esc(t.headline)}</div>
+    </div>
+    <div class="topic-stats">
+      <span class="stat-chip">📰 ${t.article_count} articles</span>
+      <span class="stat-chip">🏢 ${t.source_count} sources</span>
+      <span class="freshness ${freshClass}">${freshEmoji} ${freshClass}</span>
+    </div>
+    <div class="phrases">${phrasesHtml}</div>
+    <div style="font-size:.72rem;color:var(--dim);margin-bottom:.3rem">
+      Source diversity: <strong style="color:${div.score>=75?'var(--green)':div.score>=50?'var(--blue2)':div.score>=30?'var(--yellow)':'var(--red)'}">${div.label||'—'}</strong>
+    </div>
+    <div class="diversity-bar">
+      <div class="diversity-fill" style="width:${Math.min(div.score||0,100)}%"></div>
+    </div>
+    ${framing.length > 1 ? `<div style="font-size:.72rem;color:var(--dim);margin:.4rem 0 .2rem">Political framing:</div>${framingHtml}` : ''}
+    ${insightHtml}
+    <details>
+      <summary>Show ${topArticles.length} sample headlines</summary>
+      <div class="article-list">${articlesHtml}</div>
+    </details>
+  </div>`;
+}
+
+// ── Render regional ──────────────────────────────────────────────────────────
+const REGION_ICONS = {
+  Northeast:'🏙',
+  'Mid-Atlantic':'🗽',
+  Southeast:'🌴',
+  Midwest:'🌽',
+  'Great Plains':'🌾',
+  South:'🤠',
+  'Mountain West':'⛰',
+  'West Coast':'🌊',
+};
+
+function renderRegional(data) {
+  const byRegion = data.by_region || {};
+  let html = '<h2 class="section-title">Regional Trends & Local Framing Analysis</h2>';
+  html += '<div class="regions-grid">';
+
+  Object.entries(byRegion).forEach(([region, rdata]) => {
+    const icon = REGION_ICONS[region] || '📍';
+    const topics = rdata.top_topics || [];
+    const framings = rdata.local_framings || [];
+
+    html += `
+    <div class="region-card">
+      <div class="region-title">
+        <span class="region-icon">${icon}</span> ${esc(region)}
+      </div>
+      <div class="region-stats">
+        <span class="stat-chip">📰 ${rdata.article_count || 0} articles</span>
+        <span class="stat-chip">🏢 ${rdata.source_count || 0} sources</span>
+      </div>`;
+
+    if (topics.length) {
+      html += `<div class="sub-title">Regional top stories</div>`;
+      topics.slice(0, 4).forEach(t => {
+        html += `
+        <div class="reg-topic">
+          <div class="reg-topic-headline">${esc(t.headline)}</div>
+          <div style="font-size:.7rem;color:var(--dim)">${(t.key_phrases||[]).join(' · ')} · ${t.article_count} articles</div>
+        </div>`;
+      });
+    } else {
+      html += `<div style="font-size:.8rem;color:var(--muted);margin:.5rem 0">No regional data in this time window.</div>`;
+    }
+
+    if (framings.length) {
+      html += `<div class="sub-title">🔗 Local angles on national stories (${framings.length})</div>`;
+      framings.slice(0, 5).forEach(f => {
+        const ra = f.regional_article;
+        const nt = f.national_topic;
+        html += `
+        <div class="local-framing-card">
+          <div class="local-angle-label">${esc(f.local_angle_label)}</div>
+          <div style="font-size:.8rem;font-weight:600;margin:.25rem 0">
+            <a href="${esc(ra.link)}" target="_blank" rel="noopener">${esc(ra.title)}</a>
+          </div>
+          <div style="font-size:.7rem;color:var(--dim)">
+            ${esc(ra.source)} · ${timeAgo(ra.published)}
+          </div>
+          <div style="font-size:.7rem;color:var(--muted);margin-top:.25rem">
+            ↳ National topic #${nt.rank}: "${esc(nt.headline?.substring(0,60))}…"
+          </div>
+        </div>`;
+      });
+    }
+
+    html += '</div>'; // region-card
+  });
+
+  html += '</div>'; // regions-grid
+  document.getElementById('regionalContent').innerHTML = html;
+}
+
+// ── Render forward events ────────────────────────────────────────────────────
+function renderForward(data) {
+  const events = data.events || [];
+  const meta = data.meta || {};
+
+  let html = `
+  <h2 class="section-title">Upcoming Newsworthy Events Detected in Headlines</h2>
+  <div style="font-size:.8rem;color:var(--dim);margin-bottom:1rem">
+    Scanned ${meta.articles_scanned||0} headlines — ${meta.articles_with_signals||0} contained forward-looking signals (${meta.signal_rate_pct||0}%).
+  </div>`;
+
+  if (!events.length) {
+    html += '<div class="error-box">No upcoming events detected in current headlines.</div>';
+  } else {
+    html += '<div class="events-list">';
+    events.forEach(e => {
+      const urgClass = e.urgency_label || 'Low';
+      const signals = (e.key_signals || []).map(s =>
+        `<span class="signal-pill">"${esc(s)}"</span>`
+      ).join('');
+      const arts = (e.supporting_articles || []).slice(0, 3).map(a =>
+        `<div class="article-link">
+          <a href="${esc(a.link)}" target="_blank" rel="noopener">${esc(a.title)}</a>
+          <span style="color:var(--muted);white-space:nowrap">${esc(a.source)} · ${timeAgo(a.published)}</span>
+        </div>`
+      ).join('');
+
+      html += `
+      <div class="event-card">
+        <div class="urgency-bar urg-${urgClass}"></div>
+        <div class="event-body">
+          <div class="event-type">
+            ${esc(e.event_type)}
+            <span class="urgency-label ${urgClass}">${urgClass}</span>
+          </div>
+          <div class="signal-pills">${signals}</div>
+          <div style="font-size:.75rem;color:var(--dim);margin-bottom:.4rem">
+            Mentioned by <strong>${e.source_count}</strong> sources across
+            <strong>${e.article_count}</strong> articles
+          </div>
+          <details>
+            <summary>Show supporting headlines</summary>
+            <div class="article-list" style="margin-top:.4rem">${arts}</div>
+          </details>
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  document.getElementById('forwardContent').innerHTML = html;
+}
+
+// ── Render journalist insights ────────────────────────────────────────────────
+function renderInsights(data) {
+  const topics = data.topics || [];
+  const forward = data.forward_events || {};
+  const regional = data.regional || {};
+  const meta = data.meta || {};
+
+  // Compute aggregate stats
+  const breakingCount = topics.filter(t => t.freshness?.label === 'Breaking').length;
+  const underreportedCount = topics.filter(t => t.underreported).length;
+  const highDiversity = topics.filter(t => (t.source_diversity?.score||0) >= 75).length;
+  const crossLeanCount = topics.filter(t => (t.framing_by_lean||[]).length >= 3).length;
+  const upcomingHigh = (forward.events||[]).filter(e => e.urgency >= 5).length;
+  const localFramings = Object.values(regional.by_region || {})
+    .reduce((sum, r) => sum + (r.local_framings||[]).length, 0);
+
+  let html = `
+  <div class="insights-box">
+    <h3>📊 Radar Summary — Journalist Metrics</h3>
+    <div class="insights-grid">
+      <div class="insight-card">
+        <div class="label">Breaking stories</div>
+        <div class="value" style="color:var(--red)">${breakingCount}</div>
+        <div class="desc">Topics with articles published &lt;3h ago</div>
+      </div>
+      <div class="insight-card">
+        <div class="label">High-urgency events ahead</div>
+        <div class="value" style="color:var(--orange)">${upcomingHigh}</div>
+        <div class="desc">Upcoming events rated High/Critical</div>
+      </div>
+      <div class="insight-card">
+        <div class="label">Underreported stories</div>
+        <div class="value" style="color:var(--yellow)">${underreportedCount}</div>
+        <div class="desc">Topics with more regional than national coverage</div>
+      </div>
+      <div class="insight-card">
+        <div class="label">High source diversity</div>
+        <div class="value" style="color:var(--green)">${highDiversity}</div>
+        <div class="desc">Topics covered by many different outlet types</div>
+      </div>
+      <div class="insight-card">
+        <div class="label">Cross-partisan stories</div>
+        <div class="value" style="color:var(--cyan)">${crossLeanCount}</div>
+        <div class="desc">Topics covered by 3+ different political leanings</div>
+      </div>
+      <div class="insight-card">
+        <div class="label">Local angles found</div>
+        <div class="value" style="color:var(--purple)">${localFramings}</div>
+        <div class="desc">Regional articles framing national stories locally</div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="section-title">Journalist Analysis Dimensions</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1rem">
+    ${[
+      {
+        title: '📡 Source Diversity Score',
+        desc: 'Each topic is scored 0–100 based on how many different outlet types and political leanings cover it. High diversity = the story has genuine news value across the media spectrum.',
+        tip: 'Stories with Low diversity may reflect a single media bubble — worth investigating who is NOT covering it.',
+      },
+      {
+        title: '🏷 Political Framing Comparison',
+        desc: 'For each topic, we compare the key phrases used by left-leaning vs right-leaning outlets. Divergent phrases reveal how the same story is being spun differently.',
+        tip: 'Use this to identify "framing wars" and write balanced coverage that acknowledges both narratives.',
+      },
+      {
+        title: '⏱ Story Freshness',
+        desc: 'Four states: Breaking (<3h), Active (<12h), Developing (<48h), Ongoing. Helps prioritise which stories need immediate attention vs longer-form investigation.',
+        tip: 'Breaking + High Diversity = genuinely big story. Breaking + Low Diversity = may be a scoop by one outlet.',
+      },
+      {
+        title: '📍 Regional → National Pipeline',
+        desc: 'Stories with more regional than national coverage often represent emerging trends that have not yet broken nationally. The Underreported flag marks these.',
+        tip: 'Check "underreported" topics weekly to get ahead of stories before they become national news.',
+      },
+      {
+        title: '🔗 Local Angle Detection',
+        desc: 'Detects when a regional paper covers a national story with a local angle — e.g. a federal budget cut story mentioning specific local impact. Crucial for regional audiences.',
+        tip: 'Use local framings to understand how a national policy issue is being felt on the ground in different states.',
+      },
+      {
+        title: '🔭 Upcoming Events Forecast',
+        desc: 'Scans all headlines for linguistic patterns signalling future events: votes, hearings, deadlines, court rulings, economic data releases. Ranked by urgency.',
+        tip: 'Run this daily to build a calendar of newsworthy events worth pre-reporting or preparing coverage for.',
+      },
+      {
+        title: '⚠ Source Concentration Warning',
+        desc: 'Flags when one source accounts for >60% of articles on a topic — indicating that "consensus" may actually be just one outlet setting the agenda.',
+        tip: 'When you see a concentration warning, verify independently: is this story actually as widespread as it seems?',
+      },
+      {
+        title: '🌐 Cross-Partisan Consensus',
+        desc: 'Stories covered by 3+ political leanings simultaneously tend to have objective news merit. These cut through partisan noise.',
+        tip: 'Cross-partisan stories are the safest ground for breaking news — the story is big enough that it cannot be ignored by any side.',
+      },
+    ].map(i => `
+      <div class="region-card">
+        <div style="font-size:.92rem;font-weight:700;margin-bottom:.5rem">${i.title}</div>
+        <div style="font-size:.8rem;color:var(--dim);margin-bottom:.5rem">${esc(i.desc)}</div>
+        <div style="font-size:.75rem;color:var(--cyan);border-left:2px solid var(--cyan);padding-left:.5rem">💡 ${esc(i.tip)}</div>
+      </div>`).join('')}
+  </div>`;
+
+  document.getElementById('insightsContent').innerHTML = html;
+}
+
+// ── Render sources ────────────────────────────────────────────────────────────
+async function loadSources() {
+  try {
+    const r = await fetch('/api/sources');
+    const data = await r.json();
+    let html = `
+    <h2 class="section-title">Source Registry — ${data.total} Sources</h2>
+    <div class="sources-summary">
+      <div class="insight-card">
+        <div class="label">Total sources</div>
+        <div class="value">${data.total}</div>
+      </div>
+      <div class="insight-card">
+        <div class="label">National outlets</div>
+        <div class="value">${data.national_count}</div>
+      </div>
+      <div class="insight-card">
+        <div class="label">Regional outlets</div>
+        <div class="value">${data.regional_count}</div>
+      </div>
+      <div class="insight-card">
+        <div class="label">Regions covered</div>
+        <div class="value">${(data.regions||[]).length}</div>
+      </div>
+    </div>
+    <h3 class="section-title">Regional Sources</h3>
+    <div class="sources-by-region">`;
+
+    (data.regions || []).forEach(region => {
+      const srcs = (data.by_region || {})[region] || [];
+      html += `
+      <div class="source-region-card">
+        <h4>${REGION_ICONS[region]||'📍'} ${esc(region)} (${srcs.length})</h4>`;
+      srcs.forEach(s => {
+        html += `
+        <div class="source-item">
+          <span>${esc(s.name)}</span>
+          <span style="color:${leanColor(s.lean)};font-size:.65rem">${esc(leanLabel(s.lean))}</span>
+        </div>`;
+      });
+      html += '</div>';
+    });
+
+    html += '</div>';
+    document.getElementById('sourcesContent').innerHTML = html;
+  } catch (e) {
+    document.getElementById('sourcesContent').innerHTML =
+      `<div class="error-box">Failed to load sources: ${esc(e.message)}</div>`;
+  }
+}
+
+// ── Main scan ─────────────────────────────────────────────────────────────────
+let lastData = null;
+
+async function runScan() {
+  const hours = document.getElementById('hoursSelect').value;
+  const btn = document.getElementById('scanBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Scanning…';
+
+  // Reset content areas
+  ['topicsContent','regionalContent','forwardContent','insightsContent'].forEach(id => {
+    document.getElementById(id).innerHTML =
+      '<div class="loading"><div class="spinner"></div><p>Scanning ~200 sources…</p></div>';
+  });
+
+  document.getElementById('metaBar').style.display = 'none';
+
+  try {
+    const r = await fetch(`/api/scan?hours=${hours}`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    lastData = data;
+
+    // Update meta bar
+    const meta = data.meta || {};
+    const now = new Date();
+    document.getElementById('metaTime').textContent =
+      `Last scan: ${now.toLocaleTimeString()}`;
+    document.getElementById('metaArticles').textContent =
+      `📰 ${meta.total_articles} articles`;
+    document.getElementById('metaSources').textContent =
+      `🏢 ${meta.total_sources} sources reached`;
+    document.getElementById('metaAds').textContent =
+      `🚫 ${meta.ads_removed} ads filtered`;
+    document.getElementById('metaTopics').textContent =
+      `🔥 ${(data.topics||[]).length} topics`;
+    document.getElementById('metaRegions').textContent =
+      `🗺 ${(data.regional?.meta?.regions_with_data||[]).length} regions`;
+    document.getElementById('metaBar').style.display = 'flex';
+
+    renderTopics(data);
+    renderRegional(data.regional || {});
+    renderForward(data.forward_events || {});
+    renderInsights(data);
+
+  } catch (e) {
+    ['topicsContent','regionalContent','forwardContent','insightsContent'].forEach(id => {
+      document.getElementById(id).innerHTML =
+        `<div class="error-box">⚠ Error: ${esc(e.message)}<br>
+        Make sure the radar server is running on port 8001.</div>`;
+    });
+  }
+
+  btn.disabled = false;
+  btn.textContent = '🔄 Scan Now';
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  loadSources();
+  runScan();
+});
+</script>
+</body>
+</html>
